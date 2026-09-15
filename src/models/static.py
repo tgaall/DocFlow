@@ -13,17 +13,19 @@ class Student(Base):
     group: Mapped[str] = mapped_column(String(15))
 
 
-class Organisation(Base):
-    __tablename__ = "organisations"
+class Organization(Base):
+    __tablename__ = "organizations"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
+    addres: Mapped[str] = mapped_column(String(255))
 
 
-class Org_head(Base):
-    __tablename__ = "org_heads"
+class Supervisor(Base):
+    __tablename__ = "supervisors"
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255))
-    org_id: Mapped[int] = mapped_column(ForeignKey("organisations.id"))
+    position: Mapped[str] = mapped_column(String(255))
+    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
 
 
 class Practice(Base):
@@ -39,7 +41,7 @@ class Assignment(Base):
     __tablename__ = "assignments"
     id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
-    organization_id: Mapped[int] = mapped_column(ForeignKey("organisations.id"))
-    supervisor_id: Mapped[int] = mapped_column(ForeignKey("org_heads.id"))
+    organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
+    supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
