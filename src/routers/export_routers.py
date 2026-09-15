@@ -9,5 +9,4 @@ from fastapi import APIRouter, HTTPException, status, Depends
 
 router = APIRouter(prefix="/export", tags=["export"])
 
-#TODO сделать роутер для генерации направления. 
-@
+# TODO сделать роутер для генерации направления.
