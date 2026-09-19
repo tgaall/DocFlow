@@ -1,6 +1,7 @@
 from datetime import date
 
 from sqlalchemy import ForeignKey, String
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -11,6 +12,14 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255))
     group: Mapped[str] = mapped_column(String(15))
+
+    @hybrid_property
+    def course(self) -> int:
+        short_year = int(self.group.split("-")[1])
+        admission_year = 2000 + short_year
+        today = date.today()
+        academic_year = today.year if today.month > 9 else today.year - 1
+        return academic_year - admission_year + 1
 
 
 class Organization(Base):

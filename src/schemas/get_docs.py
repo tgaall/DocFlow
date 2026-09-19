@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 # import
@@ -16,7 +16,7 @@ class StudentBase(BaseModel):
     group: str
 
 
-class StudenCreate(StudentBase):
+class StudentCreate(StudentBase):
     pass
 
 
@@ -27,18 +27,18 @@ class StudentRead(StudentBase):
 # Practises
 
 
-class PractiseBase(BaseModel):
+class PracticeBase(BaseModel):
     type: str
     start_date: date
     end_date: date
     group: str
 
 
-class PractiseCreate(PractiseBase):
+class PracticeCreate(PracticeBase):
     pass
 
 
-class PractiseRead(PractiseBase):
+class PracticeRead(PracticeBase):
     id: int
 
 
