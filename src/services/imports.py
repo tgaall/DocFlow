@@ -3,8 +3,8 @@ import io
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.repositories.get_docs import StudentRepository
-from src.schemas.get_docs import ImportResult
+from src.repositories.students import StudentRepository
+from src.schemas.imports import ImportResult
 
 # Чтение студентов
 STUDENT_COLUMNS = {

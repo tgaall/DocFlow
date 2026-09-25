@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy import ForeignKey, String
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -12,12 +12,14 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255))
     group: Mapped[str] = mapped_column(String(15))
+    funding_type: Mapped[str]  # бюджет | платное | целевое
+    is_foreign: Mapped[bool] = mapped_column(default=False)
 
     @hybrid_property
     def course(self) -> int:
         short_year = int(self.group.split("-")[1])
         admission_year = 2000 + short_year
-        today = date.today()
+        today = datetime.now(tz=timezone.utc).date()
         academic_year = today.year if today.month > 9 else today.year - 1
         return academic_year - admission_year + 1
 

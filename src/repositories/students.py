@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.static import Student as StudentModel
+from src.models.domain import Student as StudentModel
 
 
 class StudentRepository:

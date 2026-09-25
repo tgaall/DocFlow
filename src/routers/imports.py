@@ -11,8 +11,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
-from src.schemas.get_docs import ImportResult
-from src.services.get_docs import import_students
+from src.schemas.imports import ImportResult
+from src.services.imports import import_students
 
 router = APIRouter(prefix="/import", tags=["Import"])
 

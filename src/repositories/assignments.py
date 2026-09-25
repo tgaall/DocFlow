@@ -1,6 +1,6 @@
 """from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.models.static import Assignment as assignment
+from src.models.domain import Assignment as assignment
 
 
 context = {

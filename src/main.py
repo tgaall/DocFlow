@@ -2,9 +2,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.db.init import init_db
-from src.routers.export_routers import router as export_router
-from src.routers.import_routers import router as import_router
+from src.db.bootstrap import init_db
+from src.routers.documents import router as documents_router
+from src.routers.imports import router as imports_router
 
 
 @asynccontextmanager
@@ -14,8 +14,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="DocFlow", lifespan=lifespan)
-app.include_router(import_router)
-app.include_router(export_router)
+app.include_router(imports_router)
+app.include_router(documents_router)
 
 
 @app.get("/")

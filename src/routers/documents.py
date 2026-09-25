@@ -8,8 +8,8 @@ GET  /documents/report?year=              → сводный отчёт
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 
-from src.schemas.export import AssignmentContext
-from src.services.export_docs import render_direction
+from src.schemas.documents import DirectionContext
+from src.services.documents import render_direction
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/export", tags=["export"])
         }
     },
 )
-async def render_direction_test(context: AssignmentContext) -> Response:
+async def render_direction_test(context: DirectionContext) -> Response:
     docx_bytes = render_direction(context.model_dump())
     return Response(
         content=docx_bytes,
