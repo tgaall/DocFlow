@@ -56,3 +56,11 @@ class Assignment(Base):
     supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
+
+
+class Order(Base):
+    __tablename__ = "orders"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
+    practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
+    supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))
