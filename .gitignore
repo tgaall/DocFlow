@@ -3,3 +3,5 @@ __pycache__/
 *.py[cod]
 practice.db
 .DS_Store
+.gitignore
+TheTask.md

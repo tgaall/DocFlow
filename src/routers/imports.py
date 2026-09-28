@@ -21,7 +21,7 @@ router = APIRouter(prefix="/import", tags=["Import"])
     "/students",
     response_model=ImportResult,
     status_code=status.HTTP_200_OK,
-    summary="Импорт студентов из Excel (ФИО, Группа)",
+    summary="Импорт студентов из Excel",
 )
 async def import_students_endpoint(
     file: UploadFile = File(...),
