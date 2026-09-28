@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,8 +12,7 @@ class Student(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255))
     group: Mapped[str] = mapped_column(String(15))
-    funding_type: Mapped[str]  # бюджет | платное | целевое
-    is_foreign: Mapped[bool] = mapped_column(default=False)
+    record_book: Mapped[int] = mapped_column(Integer, unique=True)
 
     @hybrid_property
     def course(self) -> int:
@@ -28,7 +27,7 @@ class Organization(Base):
     __tablename__ = "organizations"
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
-    addres: Mapped[str] = mapped_column(String(255))
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
 
 class Supervisor(Base):
@@ -53,14 +52,8 @@ class Assignment(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
-    supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))
+    supervisor_id: Mapped[int] = mapped_column(
+        ForeignKey("supervisors.id"), nullable=True
+    )
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
-
-
-class Order(Base):
-    __tablename__ = "orders"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    student_id: Mapped[int] = mapped_column(ForeignKey("students.id"))
-    practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
-    supervisor_id: Mapped[int] = mapped_column(ForeignKey("supervisors.id"))

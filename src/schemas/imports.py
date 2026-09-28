@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 # import
@@ -14,6 +14,7 @@ class ImportResult(BaseModel):
 class StudentBase(BaseModel):
     full_name: str
     group: str
+    record_book: int
 
 
 class StudentCreate(StudentBase):
@@ -39,13 +40,15 @@ class PracticeCreate(PracticeBase):
 
 
 class PracticeRead(PracticeBase):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
 
 
 # Organizations
 class OrganizationBase(BaseModel):
     name: str
-    addres: str
+    address: str | None = None
 
 
 class OrganizationCreate(OrganizationBase):
