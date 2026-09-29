@@ -21,7 +21,6 @@ DOCX_MEDIA_TYPE = (
 )
 
 
-# TODO сделать роутер для генерации направления.
 @router.post(
     "/directions/test",
     status_code=status.HTTP_200_OK,

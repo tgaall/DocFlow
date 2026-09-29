@@ -4,8 +4,9 @@ from pathlib import Path
 from docxtpl import DocxTemplate
 
 TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
-DIRECTION_TEMPLATE = TEMPLATES_DIR / "Napravlenie.docx"
-ORDER_TEMPLATE = TEMPLATES_DIR / "Order.docx"
+DIRECTION_TEMPLATE = TEMPLATES_DIR / "Direction_template.docx"
+ORDER_TEMPLATE = TEMPLATES_DIR / "Order_template.docx"
+REPORT_TEMPLATE = TEMPLATES_DIR / "Report_template.docx"
 
 
 def render_direction(context: dict) -> bytes:
