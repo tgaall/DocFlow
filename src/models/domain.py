@@ -49,6 +49,7 @@ class Practice(Base):
     supervisor_id: Mapped[int] = mapped_column(
         ForeignKey("supervisors.id"), nullable=True
     )
+    supervisor: Mapped["Supervisor"] = relationship()
 
 
 class Assignment(Base):
@@ -61,8 +62,10 @@ class Assignment(Base):
     )
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     practice_form: Mapped[str] = mapped_column(String(50), nullable=True)
-    payment_type: Mapped[str] = mapped_column(nullable=True)
+    payment_type: Mapped[str] = mapped_column(String(50), nullable=True)
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
+
+    supervisor: Mapped["Supervisor"] = relationship()
 
 
 class GroupReport(Base):
@@ -74,3 +77,4 @@ class GroupReport(Base):
     completed_count: Mapped[int] = mapped_column(Integer, nullable=True)
     average_grade: Mapped[float] = mapped_column(Float, nullable=True)
     report_date: Mapped[date] = mapped_column(default=date.today)
+    payed_students_count: Mapped[int] = mapped_column(Integer, nullable=True)
