@@ -36,7 +36,6 @@ class Supervisor(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     full_name: Mapped[str] = mapped_column(String(255))
     position: Mapped[str] = mapped_column(String(255))
-    org_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
 
 
 class Practice(Base):

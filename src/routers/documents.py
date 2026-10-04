@@ -1,18 +1,17 @@
-"""
-TODO:
-GET  /documents/assignment?practice_id=   → направления, один .docx
-GET  /documents/order/{practice_id}       → приказ
-GET  /documents/report?year=              → сводный отчёт
-"""
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
 from src.repositories.assignments import AssignmentRepository
+from src.repositories.reports import ReportRepository
 from src.schemas.documents import DirectionContext
-from src.services.documents import render_direction, render_order
+from src.services.documents import (
+    render_direction,
+    render_directions,
+    render_order,
+    render_report,
+)
 
 router = APIRouter(prefix="/export", tags=["export"])
 order_router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -21,26 +20,41 @@ DOCX_MEDIA_TYPE = (
 )
 
 
-@router.post(
-    "/directions/test",
+async def render_direction_test(context: DirectionContext) -> Response:
+    return Response(
+        content=render_direction(context.model_dump()),
+        media_type=DOCX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="direction.docx"'},
+    )
+
+
+@order_router.get(
+    "/directions",
     status_code=status.HTTP_200_OK,
+    summary="Скачать направления студентов группы",
     responses={
         200: {
-            "content": {
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {}
-            },
-            "description": "Готовый .docx",
-        }
+            "content": {DOCX_MEDIA_TYPE: {}},
+            "description": "Единый документ DOCX с направлениями группы",
+        },
+        404: {"description": "Нет назначенных студентов в группе"},
     },
 )
-async def render_direction_test(context: DirectionContext) -> Response:
-    docx_bytes = render_direction(context.model_dump())
+async def download_directions(
+    group: str,
+    session: AsyncSession = Depends(get_async_session),
+) -> Response:
+    directions = await AssignmentRepository(session).get_directions_data(group)
+    if not directions:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Нет назначенных студентов в группе",
+        )
+
     return Response(
-        content=docx_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={
-            "Content-Disposition": 'attachment; filename="direction.docx"',
-        },
+        content=render_directions(directions),
+        media_type=DOCX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="directions.docx"'},
     )
 
 
@@ -70,4 +84,36 @@ async def download_order(
         content=render_order(rows),
         media_type=DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": 'attachment; filename="order.docx"'},
+    )
+
+
+@order_router.get(
+    "/report",
+    status_code=status.HTTP_200_OK,
+    summary="Скачать сводный отчет по практикам",
+    responses={
+        200: {
+            "content": {DOCX_MEDIA_TYPE: {}},
+            "description": "Готовый отчет в формате DOCX",
+        },
+        404: {"description": "Нет данных для отчета"},
+    },
+)
+async def download_report(
+    practice_type: str | None = None,
+    session: AsyncSession = Depends(get_async_session),
+) -> Response:
+    groups_data = await ReportRepository(session).get_groups_report_data(
+        practice_type=practice_type
+    )
+    if not groups_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Нет данных для отчета",
+        )
+
+    return Response(
+        content=render_report(groups_data, practice_type or "Практика"),
+        media_type=DOCX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="report.docx"'},
     )

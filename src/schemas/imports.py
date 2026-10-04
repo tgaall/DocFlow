@@ -36,13 +36,12 @@ class PracticeBase(BaseModel):
 
 
 class PracticeCreate(PracticeBase):
-    pass
+    supervisor_id: int | None = None
 
 
 class PracticeRead(PracticeBase):
-    model_config = ConfigDict(from_attributes=True)
-
     id: int
+    supervisor_id: int | None = None
 
 
 # Organizations
@@ -64,7 +63,6 @@ class OrganizationRead(OrganizationBase):
 
 class SupervisorBase(BaseModel):
     full_name: str
-    company: str
     position: str
 
 

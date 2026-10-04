@@ -2,8 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
-from src.repositories.practices import PracticeRepository
-from src.schemas.imports import PracticeCreate, PracticeRead
+from src.repositories.practices import PracticeRepository, SupervisorRepository
+from src.schemas.imports import (
+    PracticeCreate,
+    PracticeRead,
+    SupervisorCreate,
+    SupervisorRead,
+)
 
 router = APIRouter(prefix="/practice", tags=["Practice"])
 
@@ -18,11 +23,6 @@ async def create_practice(
     practice_data: PracticeCreate,
     session: AsyncSession = Depends(get_async_session),
 ) -> PracticeRead:
-    if practice_data.end_date < practice_data.start_date:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Дата окончания практики не может быть раньше даты начала",
-        )
 
     repo = PracticeRepository(session)
     if not await repo.group_exists(practice_data.group):
@@ -37,10 +37,39 @@ async def create_practice(
             practice_type=practice_data.type,
             start_date=practice_data.start_date,
             end_date=practice_data.end_date,
+            supervisor_id=practice_data.supervisor_id,
         )
         await session.commit()
     except Exception:
         await session.rollback()
         raise
 
-    return PracticeRead.model_validate(practice)
+    return PracticeRead(
+        id=practice.id,
+        group=practice_data.group,
+        type=practice.type,
+        start_date=practice.start_date,
+        end_date=practice.end_date,
+        supervisor_id=practice.supervisor_id,
+    )
+
+
+@router.post(
+    "/create_supervisor",
+    response_model=SupervisorRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Создать руководителя практики",
+)
+async def create_supervisor(
+    sup_data: SupervisorCreate, session: AsyncSession = Depends(get_async_session)
+) -> SupervisorRead:
+    repo = SupervisorRepository(session)
+    try:
+        sup = await repo.create_supervisor(
+            full_name=sup_data.full_name, position=sup_data.position
+        )
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    return SupervisorRead(id=sup.id, full_name=sup.full_name, position=sup.position)

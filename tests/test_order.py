@@ -3,14 +3,14 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
-
 from docx import Document
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.db.base import Base
-from src.models.domain import Assignment, Organization, Practice, Student
+from src.models.domain import Assignment, Group, Organization, Practice, Student
 from src.repositories.assignments import AssignmentRepository
+from src.repositories.reports import ReportRepository
 from src.services.documents import render_order
 
 
@@ -25,20 +25,26 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
 
                 sessions = async_sessionmaker(engine, expire_on_commit=False)
                 async with sessions() as session:
+                    groups = [
+                        Group(name="ГР-25", year=2025),
+                        Group(name="ГР-24", year=2024),
+                    ]
+                    session.add_all(groups)
+                    await session.flush()
                     students = [
                         Student(
                             full_name="Иванов Иван Иванович",
-                            group="ГР-25",
+                            group_id=groups[0].id,
                             record_book=1001,
                         ),
                         Student(
                             full_name="Петров Петр Петрович",
-                            group="ГР-25",
+                            group_id=groups[0].id,
                             record_book=1002,
                         ),
                         Student(
                             full_name="Сидорова Анна Сергеевна",
-                            group="ГР-24",
+                            group_id=groups[1].id,
                             record_book=1003,
                         ),
                     ]
@@ -50,7 +56,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         type="Учебная",
                         start_date=date(2026, 6, 1),
                         end_date=date(2026, 6, 30),
-                        group="ГР-25",
+                        group_id=groups[0].id,
                     )
                     session.add_all([*students, *organizations, practice])
                     await session.flush()
@@ -102,6 +108,138 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await engine.dispose()
 
+    async def test_directions_export_returns_single_docx_with_page_breaks(self) -> None:
+        from src.routers.documents import download_directions
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            engine = create_async_engine(
+                f"sqlite+aiosqlite:///{Path(temp_dir) / 'directions.db'}"
+            )
+            try:
+                async with engine.begin() as connection:
+                    await connection.run_sync(Base.metadata.create_all)
+                sessions = async_sessionmaker(engine, expire_on_commit=False)
+                async with sessions() as session:
+                    group = Group(name="ГР-25", year=2025)
+                    organization = Organization(name="ООО Ромашка", address="г. Уфа")
+                    session.add_all([group, organization])
+                    await session.flush()
+                    students = [
+                        Student(
+                            full_name="Иванов Иван Иванович",
+                            group_id=group.id,
+                            record_book=3001,
+                        ),
+                        Student(
+                            full_name="Петров Петр Петрович",
+                            group_id=group.id,
+                            record_book=3002,
+                        ),
+                    ]
+                    practice = Practice(
+                        type="Учебная",
+                        start_date=date(2026, 6, 1),
+                        end_date=date(2026, 6, 30),
+                        group_id=group.id,
+                    )
+                    session.add_all([*students, practice])
+                    await session.flush()
+                    session.add_all(
+                        [
+                            Assignment(
+                                student_id=student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                            )
+                            for student in students
+                        ]
+                    )
+                    await session.commit()
+                    directions = await AssignmentRepository(
+                        session
+                    ).get_directions_data("ГР-25")
+                    response = await download_directions("ГР-25", session)
+
+                self.assertEqual(len(directions), 2)
+                self.assertEqual(directions[0]["group_name"], "ГР-25")
+                self.assertEqual(directions[0]["practice_start_date"], "01.06.2026")
+                self.assertEqual(directions[0]["practice_end_date"], "30.06.2026")
+                self.assertEqual(
+                    response.media_type,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                self.assertEqual(
+                    response.headers["content-disposition"],
+                    'attachment; filename="directions.docx"',
+                )
+                document = Document(BytesIO(response.body))
+                self.assertEqual(len(document.tables), 2)
+                document_text = "\n".join(
+                    cell.text
+                    for table in document.tables
+                    for row in table.rows
+                    for cell in row.cells
+                )
+                self.assertIn("Иванов Иван Иванович", document_text)
+                self.assertIn("Петров Петр Петрович", document_text)
+                self.assertEqual(
+                    len(document._element.body.xpath(".//w:br[@w:type='page']")),
+                    1,
+                )
+            finally:
+                await engine.dispose()
+
+    async def test_report_counts_unique_paid_students(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            engine = create_async_engine(
+                f"sqlite+aiosqlite:///{Path(temp_dir) / 'report.db'}"
+            )
+            try:
+                async with engine.begin() as connection:
+                    await connection.run_sync(Base.metadata.create_all)
+                sessions = async_sessionmaker(engine, expire_on_commit=False)
+                async with sessions() as session:
+                    group = Group(name="ГР-25", year=2025)
+                    organization = Organization(name="ООО Ромашка")
+                    session.add_all([group, organization])
+                    await session.flush()
+                    student = Student(
+                        full_name="Иванов Иван Иванович",
+                        group_id=group.id,
+                        record_book=4001,
+                    )
+                    practice = Practice(
+                        type="Учебная",
+                        start_date=date(2026, 6, 1),
+                        end_date=date(2026, 6, 30),
+                        group_id=group.id,
+                    )
+                    session.add_all([student, practice])
+                    await session.flush()
+                    session.add_all(
+                        [
+                            Assignment(
+                                student_id=student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                                payment_type="платное",
+                            ),
+                            Assignment(
+                                student_id=student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                                payment_type="платное",
+                            ),
+                        ]
+                    )
+                    await session.commit()
+                    report = await ReportRepository(session).get_groups_report_data()
+
+                self.assertEqual(report[0]["count_stud"], 1)
+                self.assertEqual(report[0]["payed_students"], 1)
+            finally:
+                await engine.dispose()
+
     async def test_order_endpoint_returns_downloadable_docx(self) -> None:
         from src.routers.documents import download_order
 
@@ -113,10 +251,13 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                     await connection.run_sync(Base.metadata.create_all)
                 sessions = async_sessionmaker(engine, expire_on_commit=False)
                 async with sessions() as session:
+                    group = Group(name="ГР-25", year=2025)
+                    session.add(group)
+                    await session.flush()
                     session.add(
                         Student(
                             full_name="Тест Тест Тестович",
-                            group="ГР-25",
+                            group_id=group.id,
                             record_book=2001,
                         )
                     )
