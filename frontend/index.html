@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DocFlow</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <style>
+      html {
+        font-size: 112.5%;
+      }
+
+      body {
+        line-height: 1.6;
+      }
+
+      main.container {
+        padding-block: 1.5rem 4rem;
+      }
+
+      nav ul {
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+      }
+
+      main > section {
+        padding-block: 2rem;
+        border-bottom: 1px solid var(--muted-border-color);
+      }
+
+      main > section:last-of-type {
+        border-bottom: 0;
+      }
+
+      main > section > h2 {
+        margin-bottom: 1.5rem;
+      }
+
+      main > section > article {
+        margin-block: 1.5rem;
+        padding: 1.5rem;
+      }
+    </style>
+    <script src="/app/app.js" defer></script>
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>DocFlow</h1>
+        <nav aria-label="Основная навигация">
+          <ul>
+            <li><a href="#overview">Обзор</a></li>
+            <li><a href="#imports">Импорт</a></li>
+            <li><a href="#practice">Практика</a></li>
+            <li><a href="#assignments">Назначения</a></li>
+            <li><a href="#documents">Документы</a></li>
+          </ul>
+        </nav>
+      </header>
+
+      <section id="overview">
+        <h2>Обзор</h2>
+        <p>
+          DocFlow помогает организовать практику студентов: от подготовки данных
+          и назначений до создания документов.
+        </p>
+        <p>
+          <a href="#imports">Перейти к импорту</a> ·
+          <a href="#practice">Настроить практику</a> ·
+          <a href="#assignments">Назначения</a> ·
+          <a href="#documents">Документы</a>
+        </p>
+        <p id="overview-message" role="status" hidden></p>
+      </section>
+
+      <section id="imports">
+        <h2>Импорт</h2>
+
+        <article>
+          <h3>Студенты</h3>
+          <p>
+            В файле Excel название группы берётся из заголовка
+            «Список студентов группы ...».
+          </p>
+          <form id="students-import-form">
+            <label for="students-file">Файл студентов (.xlsx)</label>
+            <input
+              id="students-file"
+              name="file"
+              type="file"
+              accept=".xlsx"
+              required
+            />
+            <button type="submit">Импортировать студентов</button>
+          </form>
+          <p id="students-import-message" role="status" hidden></p>
+        </article>
+
+        <article>
+          <h3>Организации</h3>
+          <p>
+            Используйте кодировку cp1251. Одна плохая строка отменяет весь импорт.
+          </p>
+          <form id="organizations-import-form">
+            <label for="organizations-file">Файл организаций (.txt)</label>
+            <input
+              id="organizations-file"
+              name="file"
+              type="file"
+              accept=".txt"
+              required
+            />
+            <button type="submit">Импортировать организации</button>
+          </form>
+          <p id="organizations-import-message" role="status" hidden></p>
+        </article>
+      </section>
+
+      <section id="practice">
+        <h2>Практика</h2>
+
+        <article>
+          <h3>Руководитель практики</h3>
+          <form id="supervisor-form">
+            <label for="supervisor-full-name">ФИО</label>
+            <input id="supervisor-full-name" name="full_name" required />
+
+            <label for="supervisor-position">Должность</label>
+            <input id="supervisor-position" name="position" required />
+
+            <button type="submit">Создать руководителя</button>
+          </form>
+          <p id="supervisor-message" role="status" hidden></p>
+        </article>
+
+        <article>
+          <h3>Создать практику</h3>
+          <form id="practice-form">
+            <label for="practice-group">Группа</label>
+            <select id="practice-group" name="group" required>
+              <option value="">Выберите группу</option>
+            </select>
+
+            <label for="practice-type">Тип практики</label>
+            <input
+              id="practice-type"
+              name="type"
+              list="practice-types"
+              required
+            />
+            <datalist id="practice-types">
+              <option value="Учебная"></option>
+              <option value="Производственная"></option>
+            </datalist>
+
+            <label for="practice-start-date">Дата начала</label>
+            <input
+              id="practice-start-date"
+              name="start_date"
+              type="date"
+              required
+            />
+
+            <label for="practice-end-date">Дата окончания</label>
+            <input
+              id="practice-end-date"
+              name="end_date"
+              type="date"
+              required
+            />
+
+            <label for="practice-supervisor">Руководитель (необязательно)</label>
+            <select id="practice-supervisor" name="supervisor_id">
+              <option value="">Без руководителя</option>
+            </select>
+
+            <button type="submit">Создать практику</button>
+          </form>
+          <p id="practice-message" role="status" hidden></p>
+        </article>
+      </section>
+
+      <section id="assignments">
+        <h2>Назначения</h2>
+
+        <article>
+          <h3>Индивидуальное назначение</h3>
+          <form id="individual-assignment-form">
+            <label for="assignment-student">Студент</label>
+            <select id="assignment-student" name="student_id" required>
+              <option value="">Выберите студента</option>
+            </select>
+
+            <label for="assignment-organization">Организация</label>
+            <select
+              id="assignment-organization"
+              name="organization_id"
+              required
+            >
+              <option value="">Выберите организацию</option>
+            </select>
+
+            <label for="assignment-practice">Практика</label>
+            <select id="assignment-practice" name="practice_id" required>
+              <option value="">Выберите практику</option>
+            </select>
+
+            <label for="assignment-supervisor">
+              Руководитель (необязательно)
+            </label>
+            <select id="assignment-supervisor" name="supervisor_id">
+              <option value="">Без руководителя</option>
+            </select>
+
+            <label for="assignment-practice-form">Форма практики</label>
+            <input id="assignment-practice-form" name="practice_form" />
+
+            <label for="assignment-payment-type">Тип оплаты</label>
+            <input id="assignment-payment-type" name="payment_type" />
+
+            <label for="assignment-grade">Оценка</label>
+            <input id="assignment-grade" name="grade" />
+
+            <button type="submit">Сохранить назначение</button>
+          </form>
+          <p id="individual-assignment-message" role="status" hidden></p>
+        </article>
+
+        <article>
+          <h3>Массовое назначение</h3>
+          <p>Одна организация на всю группу</p>
+          <form id="mass-assignment-form">
+            <label for="mass-assignment-group">Группа</label>
+            <select id="mass-assignment-group" name="group_id" required>
+              <option value="">Выберите группу</option>
+            </select>
+
+            <label for="mass-assignment-organization">Организация</label>
+            <select
+              id="mass-assignment-organization"
+              name="organization_id"
+              required
+            >
+              <option value="">Выберите организацию</option>
+            </select>
+
+            <label for="mass-assignment-practice">Практика</label>
+            <select
+              id="mass-assignment-practice"
+              name="practice_id"
+              required
+            >
+              <option value="">Выберите практику</option>
+            </select>
+
+            <label for="mass-assignment-supervisor">
+              Руководитель (необязательно)
+            </label>
+            <select
+              id="mass-assignment-supervisor"
+              name="supervisor_id"
+            >
+              <option value="">Без руководителя</option>
+            </select>
+
+            <label for="mass-assignment-practice-form">Форма практики</label>
+            <input
+              id="mass-assignment-practice-form"
+              name="practice_form"
+            />
+
+            <label for="mass-assignment-payment-type">Тип оплаты</label>
+            <input
+              id="mass-assignment-payment-type"
+              name="payment_type"
+            />
+
+            <button type="submit">Назначить группе</button>
+          </form>
+          <p id="mass-assignment-message" role="status" hidden></p>
+        </article>
+      </section>
+
+      <section id="documents">
+        <h2>Документы</h2>
+
+        <article>
+          <h3>Направления</h3>
+          <form id="directions-form">
+            <label for="directions-group">Группа</label>
+            <select id="directions-group" name="group" required>
+              <option value="">Выберите группу</option>
+            </select>
+            <button type="submit">Скачать направления</button>
+          </form>
+          <p id="directions-message" role="alert" hidden></p>
+        </article>
+
+        <article>
+          <h3>Приказ</h3>
+          <form id="order-form">
+            <label for="order-groups">Группы (необязательно; пусто — все группы)</label>
+            <select id="order-groups" name="groups" multiple></select>
+            <button type="submit">Скачать приказ</button>
+          </form>
+          <p id="order-message" role="alert" hidden></p>
+        </article>
+
+        <article>
+          <h3>Отчёт</h3>
+          <form id="report-form">
+            <label for="report-practice-type">Тип практики (необязательно)</label>
+            <input
+              id="report-practice-type"
+              name="practice_type"
+              list="practice-types"
+            />
+
+            <label for="report-groups">Группы (необязательно; пусто — все группы)</label>
+            <select id="report-groups" name="groups" multiple></select>
+            <button type="submit">Скачать отчёт</button>
+          </form>
+          <p id="report-message" role="alert" hidden></p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

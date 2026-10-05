@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from src.db.bootstrap import init_db
 from src.routers.assignments import router as assignments_router
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="DocFlow", lifespan=lifespan)
+app.mount("/app", StaticFiles(directory="frontend", html=True))
 app.include_router(imports_router)
 app.include_router(practices_router)
 app.include_router(practice_list_router)
