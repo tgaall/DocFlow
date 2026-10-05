@@ -17,12 +17,30 @@ class StudentBase(BaseModel):
     record_book: int
 
 
+class GroupBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    department: str | None
+    year: int
+
+
+class GroupRead(GroupBase):
+    pass
+
+
 class StudentCreate(StudentBase):
     pass
 
 
-class StudentRead(StudentBase):
+class StudentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
+    full_name: str
+    group_id: int
+    record_book: int
 
 
 # Practises
@@ -44,8 +62,21 @@ class PracticeRead(PracticeBase):
     supervisor_id: int | None = None
 
 
+class PracticeListRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    type: str
+    start_date: date
+    end_date: date
+    group_id: int
+    supervisor_id: int | None = None
+
+
 # Organizations
 class OrganizationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     name: str
     address: str | None = None
 
@@ -62,6 +93,8 @@ class OrganizationRead(OrganizationBase):
 
 
 class SupervisorBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     full_name: str
     position: str
 
@@ -72,6 +105,3 @@ class SupervisorCreate(SupervisorBase):
 
 class SupervisorRead(SupervisorBase):
     id: int
-
-
-# TODO Ведомости

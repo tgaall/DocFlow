@@ -5,12 +5,23 @@ from src.db.session import get_async_session
 from src.repositories.practices import PracticeRepository, SupervisorRepository
 from src.schemas.imports import (
     PracticeCreate,
+    PracticeListRead,
     PracticeRead,
     SupervisorCreate,
     SupervisorRead,
 )
 
 router = APIRouter(prefix="/practice", tags=["Practice"])
+practice_list_router = APIRouter(prefix="/practices", tags=["Practices"])
+
+
+@practice_list_router.get(
+    "", response_model=list[PracticeListRead], summary="Получить список практик"
+)
+async def get_practices(
+    session: AsyncSession = Depends(get_async_session),
+) -> list[PracticeListRead]:
+    return await PracticeRepository(session).get_practices()
 
 
 @router.post(

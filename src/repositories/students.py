@@ -52,3 +52,30 @@ class StudentRepository:
         self.session.add(student)
         await self.session.flush()
         return student, True
+
+    async def get_students(self, group_id: int | None = None) -> list[StudentModel]:
+        stmt = select(StudentModel)
+        if group_id is not None:
+            stmt = stmt.where(StudentModel.group_id == group_id)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+
+class GroupRepository:
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def is_exist(self, group_name: str) -> bool:
+        stmt = select(Group).where(Group.name == group_name)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none() is not None
+
+    async def get_group(self, group_name: str) -> Group | None:
+        stmt = select(Group).where(Group.name == group_name)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_all_groups(self) -> list[Group]:
+        stmt = select(Group)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

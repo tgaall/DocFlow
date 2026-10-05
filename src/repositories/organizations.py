@@ -8,6 +8,10 @@ class OrganizationRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+    async def get_all(self) -> list[OrganizationModel]:
+        result = await self.session.execute(select(OrganizationModel))
+        return list(result.scalars().all())
+
     async def get_or_create(
         self, name: str, address: str | None
     ) -> tuple[OrganizationModel, bool]:

@@ -32,7 +32,10 @@ class ReportRepository:
                 func.count(
                     func.distinct(
                         case(
-                            (Assignment.payment_type.is_not(None), Student.id),
+                            (
+                                Assignment.payment_type == "С оплатой",
+                                Student.id,
+                            ),
                             else_=None,
                         )
                     )

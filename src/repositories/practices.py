@@ -39,6 +39,11 @@ class PracticeRepository:
         await self.session.flush()
         return practice
 
+    async def get_practices(self) -> list[PracticeModel]:
+        stmt = select(PracticeModel)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
 
 class SupervisorRepository:
     def __init__(self, session: AsyncSession) -> None:
@@ -58,3 +63,8 @@ class SupervisorRepository:
         self.session.add(sup)
         await self.session.flush()
         return sup
+
+    async def get_supervisors(self) -> list[Supervisor]:
+        stmt = select(Supervisor)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())

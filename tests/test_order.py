@@ -208,13 +208,18 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         group_id=group.id,
                         record_book=4001,
                     )
+                    unpaid_student = Student(
+                        full_name="Петров Петр Петрович",
+                        group_id=group.id,
+                        record_book=4002,
+                    )
                     practice = Practice(
                         type="Учебная",
                         start_date=date(2026, 6, 1),
                         end_date=date(2026, 6, 30),
                         group_id=group.id,
                     )
-                    session.add_all([student, practice])
+                    session.add_all([student, unpaid_student, practice])
                     await session.flush()
                     session.add_all(
                         [
@@ -222,20 +227,26 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                                 student_id=student.id,
                                 organization_id=organization.id,
                                 practice_id=practice.id,
-                                payment_type="платное",
+                                payment_type="С оплатой",
                             ),
                             Assignment(
                                 student_id=student.id,
                                 organization_id=organization.id,
                                 practice_id=practice.id,
-                                payment_type="платное",
+                                payment_type="С оплатой",
+                            ),
+                            Assignment(
+                                student_id=unpaid_student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                                payment_type="без оплаты",
                             ),
                         ]
                     )
                     await session.commit()
                     report = await ReportRepository(session).get_groups_report_data()
 
-                self.assertEqual(report[0]["count_stud"], 1)
+                self.assertEqual(report[0]["count_stud"], 2)
                 self.assertEqual(report[0]["payed_students"], 1)
             finally:
                 await engine.dispose()
