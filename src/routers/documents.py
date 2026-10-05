@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,7 +63,7 @@ async def download_directions(
 @order_router.get(
     "/order",
     status_code=status.HTTP_200_OK,
-    summary="Скачать приказ по всем студентам",
+    summary="Скачать приказ по выбранным группам или всем студентам",
     responses={
         200: {
             "content": {DOCX_MEDIA_TYPE: {}},
@@ -72,8 +74,9 @@ async def download_directions(
 )
 async def download_order(
     session: AsyncSession = Depends(get_async_session),
+    groups: Annotated[list[str] | None, Query()] = None,
 ) -> Response:
-    rows = await AssignmentRepository(session).get_order_rows()
+    rows = await AssignmentRepository(session).get_order_rows(groups=groups)
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -90,7 +93,7 @@ async def download_order(
 @order_router.get(
     "/report",
     status_code=status.HTTP_200_OK,
-    summary="Скачать сводный отчет по практикам",
+    summary="Скачать сводный отчет по выбранным группам и типу практики",
     responses={
         200: {
             "content": {DOCX_MEDIA_TYPE: {}},
@@ -101,10 +104,12 @@ async def download_order(
 )
 async def download_report(
     practice_type: str | None = None,
+    groups: Annotated[list[str] | None, Query()] = None,
     session: AsyncSession = Depends(get_async_session),
 ) -> Response:
     groups_data = await ReportRepository(session).get_groups_report_data(
-        practice_type=practice_type
+        practice_type=practice_type,
+        groups=groups,
     )
     if not groups_data:
         raise HTTPException(

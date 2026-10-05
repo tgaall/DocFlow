@@ -10,7 +10,7 @@ from src.db.base import DATABASE_URL
 
 engine = create_async_engine(
     DATABASE_URL,
-    echo=True,
+    echo=False,
 )
 
 async_session_factory = async_sessionmaker(

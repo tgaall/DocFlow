@@ -14,6 +14,7 @@ class ReportRepository:
     async def get_groups_report_data(
         self,
         practice_type: str | None = None,
+        groups: list[str] | None = None,
     ) -> list[dict]:
         """
         Получить данные для отчета по группам
@@ -62,6 +63,8 @@ class ReportRepository:
         # Применить фильтры
         if practice_type:
             stmt = stmt.where(Practice.type == practice_type)
+        if groups:
+            stmt = stmt.where(Group.name.in_(groups))
         
         result = await self.session.execute(stmt)
         rows = result.all()

@@ -136,7 +136,10 @@ class AssignmentRepository:
             await self.session.rollback()
             raise
 
-    async def get_order_rows(self) -> list[dict[str, str]]:
+    async def get_order_rows(
+        self,
+        groups: list[str] | None = None,
+    ) -> list[dict[str, str]]:
         statement = (
             select(Student, Assignment, Organization, Practice, Supervisor, Group)
             .outerjoin(Assignment, Assignment.student_id == Student.id)
@@ -146,6 +149,8 @@ class AssignmentRepository:
             .join(Group, Group.id == Student.group_id)
             .order_by(Student.id, Assignment.id)
         )
+        if groups:
+            statement = statement.where(Group.name.in_(groups))
         result = await self.session.execute(statement)
 
         rows: list[dict[str, str]] = []

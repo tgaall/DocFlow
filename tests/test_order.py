@@ -77,6 +77,9 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                     await session.commit()
 
                     rows = await AssignmentRepository(session).get_order_rows()
+                    selected_group_rows = await AssignmentRepository(
+                        session
+                    ).get_order_rows(groups=["ГР-25"])
 
                 self.assertEqual(
                     [row["full_name"] for row in rows],
@@ -84,6 +87,10 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(rows[0]["org_display"], "ООО Ромашка, г. Уфа")
                 self.assertEqual(rows[0]["practice_type"], "Учебная")
+                self.assertEqual(len(selected_group_rows), 2)
+                self.assertTrue(
+                    all(row["group"] == "ГР-25" for row in selected_group_rows)
+                )
                 self.assertEqual(rows[0]["start_date"], "01.06.2026")
                 self.assertEqual(rows[1]["org_display"], "АО Пример")
                 self.assertEqual(rows[2]["org_display"], "")
@@ -200,8 +207,9 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 sessions = async_sessionmaker(engine, expire_on_commit=False)
                 async with sessions() as session:
                     group = Group(name="ГР-25", year=2025)
+                    other_group = Group(name="ГР-24", year=2024)
                     organization = Organization(name="ООО Ромашка")
-                    session.add_all([group, organization])
+                    session.add_all([group, other_group, organization])
                     await session.flush()
                     student = Student(
                         full_name="Иванов Иван Иванович",
@@ -213,13 +221,32 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         group_id=group.id,
                         record_book=4002,
                     )
+                    other_group_student = Student(
+                        full_name="Сидорова Анна Сергеевна",
+                        group_id=other_group.id,
+                        record_book=4003,
+                    )
                     practice = Practice(
                         type="Учебная",
                         start_date=date(2026, 6, 1),
                         end_date=date(2026, 6, 30),
                         group_id=group.id,
                     )
-                    session.add_all([student, unpaid_student, practice])
+                    other_group_practice = Practice(
+                        type="Учебная",
+                        start_date=date(2026, 6, 1),
+                        end_date=date(2026, 6, 30),
+                        group_id=other_group.id,
+                    )
+                    session.add_all(
+                        [
+                            student,
+                            unpaid_student,
+                            other_group_student,
+                            practice,
+                            other_group_practice,
+                        ]
+                    )
                     await session.flush()
                     session.add_all(
                         [
@@ -244,10 +271,17 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         ]
                     )
                     await session.commit()
-                    report = await ReportRepository(session).get_groups_report_data()
+                    repository = ReportRepository(session)
+                    all_groups_report = await repository.get_groups_report_data()
+                    report = await repository.get_groups_report_data(
+                        practice_type="Учебная",
+                        groups=["ГР-25"],
+                    )
 
                 self.assertEqual(report[0]["count_stud"], 2)
                 self.assertEqual(report[0]["payed_students"], 1)
+                self.assertEqual(len(all_groups_report), 2)
+                self.assertEqual([row["group_name"] for row in report], ["ГР-25"])
             finally:
                 await engine.dispose()
 
