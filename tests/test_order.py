@@ -181,7 +181,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await engine.dispose()
 
-    async def test_directions_export_returns_single_docx_with_page_breaks(self) -> None:
+    async def test_directions_export_filters_selected_practice(self) -> None:
         from src.routers.documents import download_directions
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -215,7 +215,13 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         end_date=date(2026, 6, 30),
                         group_id=group.id,
                     )
-                    session.add_all([*students, practice])
+                    other_practice = Practice(
+                        type="Производственная",
+                        start_date=date(2026, 7, 1),
+                        end_date=date(2026, 7, 31),
+                        group_id=group.id,
+                    )
+                    session.add_all([*students, practice, other_practice])
                     await session.flush()
                     session.add_all(
                         [
@@ -226,12 +232,19 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                             )
                             for student in students
                         ]
+                        + [
+                            Assignment(
+                                student_id=students[0].id,
+                                organization_id=organization.id,
+                                practice_id=other_practice.id,
+                            )
+                        ]
                     )
                     await session.commit()
                     directions = await AssignmentRepository(
                         session
-                    ).get_directions_data("ГР-25")
-                    response = await download_directions("ГР-25", session)
+                    ).get_directions_data(practice.id)
+                    response = await download_directions(practice.id, session)
 
                 self.assertEqual(len(directions), 2)
                 self.assertEqual(directions[0]["group_name"], "ГР-25")

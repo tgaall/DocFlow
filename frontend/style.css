@@ -282,6 +282,11 @@ article label {
   font-size: 0.9rem;
 }
 
+/* Empty assignment selects act as placeholders until the user picks a value. */
+.assignment-placeholder:has(option:checked[value=""]) {
+  color: var(--pico-form-element-placeholder-color);
+}
+
 /* Exclude :focus/:active so Pico's ink focus border keeps winning there. */
 article :is(input, select, textarea):not([type="file"]):hover:not(:focus, :active) {
   border-color: var(--df-border-strong);

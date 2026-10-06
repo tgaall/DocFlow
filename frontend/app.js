@@ -45,12 +45,6 @@ function updatePracticeSelectors() {
     groupSelect.add(new Option(group.name, group.name));
   });
 
-  const directionsGroupSelect = document.getElementById("directions-group");
-  directionsGroupSelect.replaceChildren(new Option("Выберите группу", ""));
-  data.groups.forEach((group) => {
-    directionsGroupSelect.add(new Option(group.name, group.name));
-  });
-
   ["order-groups", "report-groups"].forEach((selectId) => {
     const groupsSelect = document.getElementById(selectId);
     groupsSelect.replaceChildren();
@@ -96,7 +90,11 @@ function updateAssignmentSelectors() {
     });
   });
 
-  ["assignment-practice", "mass-assignment-practice"].forEach((selectId) => {
+  [
+    "assignment-practice",
+    "mass-assignment-practice",
+    "directions-practice",
+  ].forEach((selectId) => {
     const practiceSelect = document.getElementById(selectId);
     practiceSelect.replaceChildren(new Option("Выберите практику", ""));
     data.practices.forEach((practice) => {
@@ -257,8 +255,8 @@ async function downloadDocument(form, endpoint, messageId, fallbackFilename) {
     query.append("groups", group);
   }
 
-  if (formData.has("group")) {
-    query.set("group", formData.get("group"));
+  if (formData.has("practice_id") && formData.get("practice_id")) {
+    query.set("practice_id", formData.get("practice_id"));
   }
   if (formData.has("practice_type") && formData.get("practice_type")) {
     query.set("practice_type", formData.get("practice_type"));

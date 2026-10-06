@@ -55,14 +55,14 @@ class AssignmentRepository:
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
-    async def get_directions_data(self, group_name: str) -> list[dict[str, str]]:
+    async def get_directions_data(self, practice_id: int) -> list[dict[str, str]]:
         statement = (
             select(Student, Assignment, Organization, Practice, Group)
             .join(Assignment, Assignment.student_id == Student.id)
             .join(Organization, Organization.id == Assignment.organization_id)
             .join(Practice, Practice.id == Assignment.practice_id)
             .join(Group, Group.id == Student.group_id)
-            .where(Group.name == group_name)
+            .where(Practice.id == practice_id)
             .order_by(Student.full_name)
         )
         result = await self.session.execute(statement)

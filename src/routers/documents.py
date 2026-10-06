@@ -33,24 +33,24 @@ async def render_direction_test(context: DirectionContext) -> Response:
 @order_router.get(
     "/directions",
     status_code=status.HTTP_200_OK,
-    summary="Скачать направления студентов группы",
+    summary="Скачать направления студентов по практике",
     responses={
         200: {
             "content": {DOCX_MEDIA_TYPE: {}},
-            "description": "Единый документ DOCX с направлениями группы",
+            "description": "Единый документ DOCX с направлениями по практике",
         },
-        404: {"description": "Нет назначенных студентов в группе"},
+        404: {"description": "Нет назначенных студентов по практике"},
     },
 )
 async def download_directions(
-    group: str,
+    practice_id: int,
     session: AsyncSession = Depends(get_async_session),
 ) -> Response:
-    directions = await AssignmentRepository(session).get_directions_data(group)
+    directions = await AssignmentRepository(session).get_directions_data(practice_id)
     if not directions:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Нет назначенных студентов в группе",
+            detail="Нет назначенных студентов по практике",
         )
 
     return Response(

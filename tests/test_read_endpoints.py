@@ -135,6 +135,10 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(path, paths)
             self.assertIn("get", paths[path])
 
+        directions_parameters = paths["/documents/directions"]["get"]["parameters"]
+        self.assertIn("practice_id", {item["name"] for item in directions_parameters})
+        self.assertNotIn("group", {item["name"] for item in directions_parameters})
+
 
 if __name__ == "__main__":
     unittest.main()
