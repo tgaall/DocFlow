@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,45 +8,13 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
-    <style>
-      html {
-        font-size: 112.5%;
-      }
-
-      body {
-        line-height: 1.6;
-      }
-
-      main.container {
-        padding-block: 1.5rem 4rem;
-      }
-
-      nav ul {
-        flex-wrap: wrap;
-        gap: 0.5rem 1rem;
-      }
-
-      main > section {
-        padding-block: 2rem;
-        border-bottom: 1px solid var(--muted-border-color);
-      }
-
-      main > section:last-of-type {
-        border-bottom: 0;
-      }
-
-      main > section > h2 {
-        margin-bottom: 1.5rem;
-      }
-
-      main > section > article {
-        margin-block: 1.5rem;
-        padding: 1.5rem;
-      }
-    </style>
+    <link rel="stylesheet" href="/app/style.css" />
     <script src="/app/app.js" defer></script>
   </head>
   <body>
+    <!-- data-theme="light" pins Pico's light theme so its
+         prefers-color-scheme:dark block cannot repaint the DocFlow palette.
+         The DocFlow look lives in /app/style.css. -->
     <main class="container">
       <header>
         <h1>DocFlow</h1>
@@ -55,7 +23,7 @@
             <li><a href="#overview">Обзор</a></li>
             <li><a href="#imports">Импорт</a></li>
             <li><a href="#practice">Практика</a></li>
-            <li><a href="#assignments">Назначения</a></li>
+            <li><a href="#assignments">Распределение студентов</a></li>
             <li><a href="#documents">Документы</a></li>
           </ul>
         </nav>
@@ -70,7 +38,7 @@
         <p>
           <a href="#imports">Перейти к импорту</a> ·
           <a href="#practice">Настроить практику</a> ·
-          <a href="#assignments">Назначения</a> ·
+          <a href="#assignments">Распределение студентов</a> ·
           <a href="#documents">Документы</a>
         </p>
         <p id="overview-message" role="status" hidden></p>
@@ -184,7 +152,7 @@
       </section>
 
       <section id="assignments">
-        <h2>Назначения</h2>
+        <h2>Распределение студентов</h2>
 
         <article>
           <h3>Индивидуальное назначение</h3>
@@ -224,7 +192,7 @@
             <label for="assignment-grade">Оценка</label>
             <input id="assignment-grade" name="grade" />
 
-            <button type="submit">Сохранить назначение</button>
+            <button type="submit">Сохранить распределение</button>
           </form>
           <p id="individual-assignment-message" role="status" hidden></p>
         </article>
