@@ -270,6 +270,14 @@
         <article>
           <h3>Приказ</h3>
           <form id="order-form">
+            <label for="order-practice-type">Тип практики</label>
+            <input
+              id="order-practice-type"
+              name="practice_type"
+              list="practice-types"
+              required
+            />
+
             <label for="order-groups">Группы (необязательно; пусто — все группы)</label>
             <select id="order-groups" name="groups" multiple></select>
             <button type="submit">Скачать приказ</button>

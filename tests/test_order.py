@@ -15,6 +15,70 @@ from src.services.documents import render_order
 
 
 class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_order_filters_assignments_by_practice_type(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            database_path = Path(temp_dir) / "filtered-order.db"
+            engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
+            try:
+                async with engine.begin() as connection:
+                    await connection.run_sync(Base.metadata.create_all)
+
+                sessions = async_sessionmaker(engine, expire_on_commit=False)
+                async with sessions() as session:
+                    group = Group(name="ГР-25", year=2025)
+                    organization = Organization(name="ООО Ромашка")
+                    session.add_all([group, organization])
+                    await session.flush()
+                    students = [
+                        Student(
+                            full_name=name,
+                            group_id=group.id,
+                            record_book=record_book,
+                        )
+                        for name, record_book in [
+                            ("Иванов Иван Иванович", 4001),
+                            ("Петров Петр Петрович", 4002),
+                        ]
+                    ]
+                    practices = [
+                        Practice(
+                            type=practice_type,
+                            start_date=date(2026, 6, 1),
+                            end_date=date(2026, 6, 30),
+                            group_id=group.id,
+                        )
+                        for practice_type in ("Учебная", "Производственная")
+                    ]
+                    session.add_all([*students, *practices])
+                    await session.flush()
+                    session.add_all(
+                        [
+                            Assignment(
+                                student_id=student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                            )
+                            for student in students
+                            for practice in practices
+                        ]
+                    )
+                    await session.commit()
+
+                    rows = await AssignmentRepository(session).get_order_rows(
+                        practice_type="Учебная"
+                    )
+
+                self.assertEqual(len(rows), len(students))
+                self.assertEqual(
+                    [row["full_name"] for row in rows],
+                    [student.full_name for student in students[:2]],
+                )
+                self.assertTrue(
+                    all(row["practice_type"] == "Учебная" for row in rows)
+                )
+            finally:
+                await engine.dispose()
+
     async def test_order_has_all_students_in_import_order_and_assignment_data(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "order.db"
@@ -76,14 +140,19 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                     )
                     await session.commit()
 
-                    rows = await AssignmentRepository(session).get_order_rows()
+                    rows = await AssignmentRepository(session).get_order_rows(
+                        practice_type="Учебная"
+                    )
                     selected_group_rows = await AssignmentRepository(
                         session
-                    ).get_order_rows(groups=["ГР-25"])
+                    ).get_order_rows(
+                        practice_type="Учебная",
+                        groups=["ГР-25"],
+                    )
 
                 self.assertEqual(
                     [row["full_name"] for row in rows],
-                    [student.full_name for student in students],
+                    [student.full_name for student in students[:2]],
                 )
                 self.assertEqual(rows[0]["org_display"], "ООО Ромашка, г. Уфа")
                 self.assertEqual(rows[0]["practice_type"], "Учебная")
@@ -93,7 +162,6 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 )
                 self.assertEqual(rows[0]["start_date"], "01.06.2026")
                 self.assertEqual(rows[1]["org_display"], "АО Пример")
-                self.assertEqual(rows[2]["org_display"], "")
 
                 document_bytes = render_order(rows)
                 output = Path(temp_dir) / "generated-order.docx"
@@ -105,13 +173,11 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 ]
                 self.assertEqual(
                     generated_names,
-                    [student.full_name for student in students],
+                    [student.full_name for student in students[:2]],
                 )
                 self.assertEqual(table.cell(1, 0).text, "1")
                 self.assertEqual(table.cell(2, 0).text, "2")
-                self.assertEqual(table.cell(3, 0).text, "3")
                 self.assertEqual(table.cell(1, 2).text, "ООО Ромашка, г. Уфа")
-                self.assertEqual(table.cell(3, 2).text, "")
             finally:
                 await engine.dispose()
 
@@ -297,17 +363,34 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 sessions = async_sessionmaker(engine, expire_on_commit=False)
                 async with sessions() as session:
                     group = Group(name="ГР-25", year=2025)
+                    organization = Organization(name="ООО Ромашка")
                     session.add(group)
                     await session.flush()
+                    student = Student(
+                        full_name="Тест Тест Тестович",
+                        group_id=group.id,
+                        record_book=2001,
+                    )
+                    practice = Practice(
+                        type="Учебная",
+                        start_date=date(2026, 6, 1),
+                        end_date=date(2026, 6, 30),
+                        group_id=group.id,
+                    )
+                    session.add_all([organization, student, practice])
+                    await session.flush()
                     session.add(
-                        Student(
-                            full_name="Тест Тест Тестович",
-                            group_id=group.id,
-                            record_book=2001,
+                        Assignment(
+                            student_id=student.id,
+                            organization_id=organization.id,
+                            practice_id=practice.id,
                         )
                     )
                     await session.commit()
-                    response = await download_order(session)
+                    response = await download_order(
+                        session=session,
+                        practice_type="Учебная",
+                    )
 
                 self.assertEqual(
                     response.media_type,
@@ -335,7 +418,10 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 sessions = async_sessionmaker(engine, expire_on_commit=False)
                 async with sessions() as session:
                     with self.assertRaises(HTTPException) as error:
-                        await download_order(session)
+                        await download_order(
+                            session=session,
+                            practice_type="Учебная",
+                        )
 
                 self.assertEqual(error.exception.status_code, 404)
             finally:

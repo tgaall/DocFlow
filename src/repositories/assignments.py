@@ -138,6 +138,7 @@ class AssignmentRepository:
 
     async def get_order_rows(
         self,
+        practice_type: str,
         groups: list[str] | None = None,
     ) -> list[dict[str, str]]:
         statement = (
@@ -151,6 +152,7 @@ class AssignmentRepository:
         )
         if groups:
             statement = statement.where(Group.name.in_(groups))
+        statement = statement.where(Practice.type == practice_type)
         result = await self.session.execute(statement)
 
         rows: list[dict[str, str]] = []

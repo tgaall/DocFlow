@@ -73,10 +73,14 @@ async def download_directions(
     },
 )
 async def download_order(
+    practice_type: str,
     session: AsyncSession = Depends(get_async_session),
     groups: Annotated[list[str] | None, Query()] = None,
 ) -> Response:
-    rows = await AssignmentRepository(session).get_order_rows(groups=groups)
+    rows = await AssignmentRepository(session).get_order_rows(
+        groups=groups,
+        practice_type=practice_type,
+    )
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
