@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -21,7 +22,25 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="DocFlow", lifespan=lifespan)
-app.mount("/app", StaticFiles(directory="frontend", html=True))
+STATIC_ROOT = Path(__file__).resolve().parent.parent / "frontend"
+
+
+def resolve_static_dir() -> Path:
+    """Return the directory served at ``/app``.
+
+    The React app (``frontend/DocFlow educational app interface``) is built by
+    Vite into ``frontend/dist``. That directory is a build artifact, so it may
+    be absent on a fresh checkout or in CI where Node.js is not installed.
+    Falling back to the legacy static frontend keeps ``src.main`` importable and
+    ``/app`` usable until ``npm run build`` has produced the bundle.
+    """
+    dist = STATIC_ROOT / "dist"
+    if (dist / "index.html").is_file():
+        return dist
+    return STATIC_ROOT
+
+
+app.mount("/app", StaticFiles(directory=resolve_static_dir(), html=True))
 app.include_router(imports_router)
 app.include_router(practices_router)
 app.include_router(practice_list_router)

@@ -1,0 +1,12 @@
+{
+  "title": "DocFlow",
+  "language": "ru",
+  "description": "Streamline educational practice management by importing student lists, creating sessions, and generating essential documents for teachers.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

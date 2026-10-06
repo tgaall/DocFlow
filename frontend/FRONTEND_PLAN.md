@@ -65,18 +65,19 @@ the API's `detail` when available.
 
 ## 4. Form fields and suggestions
 
-The backend accepts arbitrary strings for several fields, so keep them as text
-inputs and use HTML `<datalist>` elements for known suggestions rather than
-restrictive selects. Confirmed practice type suggestions:
+The backend accepts arbitrary strings for several fields, so use HTML `<datalist>`
+elements for known suggestions rather than restrictive selects. Confirmed
+practice type suggestions:
 
 ```text
 Учебная
 Производственная
 ```
 
-Keep `practice_form`, `payment_type`, and `grade` as text inputs. Do not invent
-fixed accepted values or datalist options for them; add suggestions only when
-they are confirmed by the project requirements or examples.
+For assignment forms, use selectors with the confirmed choices for
+`practice_form` ("Очно", "Дистанционно") and `payment_type` ("С оплатой",
+"Без оплаты"). Keep `grade` as a text input; do not invent fixed accepted
+values or datalist options for it.
 
 Use selectors for entities that have API-provided choices (groups, students,
 organizations, supervisors, and practices), submitting the identifier or group

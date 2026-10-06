@@ -31,10 +31,7 @@
 
       <section id="overview">
         <h2>Обзор</h2>
-        <p>
-          DocFlow помогает организовать практику студентов: от подготовки данных
-          и назначений до создания документов.
-        </p>
+        
         <p>
           <a href="#imports">Перейти к импорту</a> ·
           <a href="#practice">Настроить практику</a> ·
@@ -184,10 +181,18 @@
             </select>
 
             <label for="assignment-practice-form">Форма практики</label>
-            <input id="assignment-practice-form" name="practice_form" />
+            <select id="assignment-practice-form" name="practice_form">
+              <option value="">Выберите форму практики</option>
+              <option value="Очно">Очно</option>
+              <option value="Дистанционно">Дистанционно</option>
+            </select>
 
             <label for="assignment-payment-type">Тип оплаты</label>
-            <input id="assignment-payment-type" name="payment_type" />
+            <select id="assignment-payment-type" name="payment_type">
+              <option value="">Выберите тип оплаты</option>
+              <option value="С оплатой">С оплатой</option>
+              <option value="Без оплаты">Без оплаты</option>
+            </select>
 
             <label for="assignment-grade">Оценка</label>
             <input id="assignment-grade" name="grade" />
@@ -235,16 +240,24 @@
             </select>
 
             <label for="mass-assignment-practice-form">Форма практики</label>
-            <input
+            <select
               id="mass-assignment-practice-form"
               name="practice_form"
-            />
+            >
+              <option value="">Выберите форму практики</option>
+              <option value="Очно">Очно</option>
+              <option value="Дистанционно">Дистанционно</option>
+            </select>
 
             <label for="mass-assignment-payment-type">Тип оплаты</label>
-            <input
+            <select
               id="mass-assignment-payment-type"
               name="payment_type"
-            />
+            >
+              <option value="">Выберите тип оплаты</option>
+              <option value="С оплатой">С оплатой</option>
+              <option value="Без оплаты">Без оплаты</option>
+            </select>
 
             <button type="submit">Назначить группе</button>
           </form>

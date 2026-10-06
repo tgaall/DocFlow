@@ -5,3 +5,22 @@ practice.db
 .DS_Store
 .gitignore
 TheTask.md
+frontend/FIGMA_BRIEF.md
+frontend/FRONTEND_PLAN.md
+frontend/DocFlow educational app interface/node_modules/
+frontend/DocFlow educational app interface/dist/
+frontend/dist/
+.gitignore
+frontend/DocFlow educational app interface/.gitattributes
+frontend/DocFlow educational app interface/CLAUDE.md
+.gitignore
+frontend/DocFlow educational app interface/.figma/make/analyze-routes
+.gitignore
+frontend/DocFlow educational app interface/.figma/make/deploy-preview
+.gitignore
+frontend/DocFlow educational app interface/.figma/make/deploy
+frontend/DocFlow educational app interface/.figma/make/dev
+.gitignore
+frontend/DocFlow educational app interface/.figma/make/install
+frontend/DocFlow educational app interface/.figma/make/langserver
+.gitignore
