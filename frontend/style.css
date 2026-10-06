@@ -1,57 +1,47 @@
-/* DocFlow custom styles.
- *
- * Strategy: Pico.css stays the base (typography, form resets, focus rings,
- * [hidden] handling). This file only (1) defines the DocFlow palette as design
- * tokens, (2) maps those tokens onto Pico's --pico-* variables, and (3) adds the
- * few layout rules Pico cannot express (card grid, binary background motif).
- *
- * The palette is pinned to light via <html data-theme="light">. That matters:
- * Pico ships a dark theme behind
- * `@media (prefers-color-scheme: dark){ :root:not([data-theme]) { ... } }`,
- * which has specificity (0,2,0). Matching that specificity here and loading
- * after Pico lets us win without !important.
- */
+/* DocFlow custom styles - Warm Enterprise (Earth & Energy) Edition */
 
-/* 1. Design tokens + 2. mapping onto Pico
- * ------------------------------------------------------------------ */
+/* 1. Design tokens + 2. mapping onto Pico */
 :root[data-theme="light"] {
-  /* Surfaces */
-  --df-canvas: #f2f2f0;
-  --df-surface: #e8e8e6;
-  --df-surface-raised: #fdfdfc;
+  /* Surfaces - Warm Sand & Alabaster */
+  --df-canvas: #fbf9f6; /* Теплый, почти незаметный кремово-серый фон */
+  --df-surface: #ffffff;
+  --df-surface-raised: #f4f0ec;
   --df-surface-white: #ffffff;
 
-  /* Ink */
-  --df-ink: #111111;
-  --df-ink-soft: #3a3a38;
-  --df-muted: #929392;
+  /* Ink - Espresso / Dark Stone (теплый черный) */
+  --df-ink: #292524;
+  --df-ink-soft: #57534e;
+  --df-muted: #78716c;
 
-  /* Lines */
-  --df-border: #d8d8d6;
-  --df-border-strong: #c3c3c0;
+  /* Lines - Warm neutrals */
+  --df-border: #e7e5e4;
+  --df-border-strong: #d6d3d1;
 
-  /* Soft yellow accent from the reference */
-  --df-accent: #f2e58a;
-  --df-accent-soft: #faf5cf;
-  --df-accent-line: #e0d06a;
-  --df-accent-ring: rgba(242, 229, 138, 0.85);
+  /* Accent - Deep Terracotta / Industrial Bronze */
+  --df-accent: rgb(45, 45, 45); /* Благородный терракотовый (цвет недр, энергии, кирпича) */
+  --df-accent-soft: #ffedd5; /* Теплая светло-оранжевая подложка */
+  --df-accent-line: #ea580c;
+  --df-accent-ring: rgba(194, 65, 12, 0.15);
 
   /* Feedback */
-  --df-danger-ink: #8a2f2a;
-  --df-danger-bg: #f7eae8;
-  --df-danger-border: #e6cbc6;
+  --df-danger-ink: #b91c1c;
+  --df-danger-bg: #fef2f2;
+  --df-danger-border: #fca5a5;
 
-  /* Geometry */
-  --df-radius-card: 24px;
-  --df-radius-control: 14px;
-  --df-radius-pill: 999px;
-  --df-shadow-card:
-    0 1px 2px rgba(17, 17, 17, 0.05),
-    0 14px 34px -18px rgba(17, 17, 17, 0.18);
-  --df-shadow-raised: 0 2px 4px rgba(17, 17, 17, 0.06),
-    0 10px 24px -12px rgba(17, 17, 17, 0.22);
+  /* Geometry - Modern Corporate */
+  --df-radius-card: 10px;
+  --df-radius-control: 6px;
+  --df-radius-pill: 6px; 
+  
+  /* Shadows - Crisp */
+  --df-shadow-card: 
+    0 1px 2px 0 rgba(41, 37, 36, 0.05),
+    0 4px 6px -1px rgba(41, 37, 36, 0.02);
+  --df-shadow-raised: 
+    0 4px 6px -1px rgba(41, 37, 36, 0.08),
+    0 10px 15px -3px rgba(41, 37, 36, 0.04);
 
-  /* Map tokens onto Pico so every Pico component inherits the look */
+  /* Pico mappings */
   --pico-background-color: var(--df-canvas);
   --pico-color: var(--df-ink);
   --pico-h1-color: var(--df-ink);
@@ -68,113 +58,86 @@
   --pico-card-background-color: var(--df-surface);
   --pico-card-border-color: var(--df-border);
   --pico-card-box-shadow: var(--df-shadow-card);
-  --pico-card-sectioning-background-color: var(--df-surface);
-  --pico-text-selection-color: rgba(242, 229, 138, 0.8);
+  --pico-card-sectioning-background-color: var(--df-surface-raised);
+  --pico-text-selection-color: var(--df-accent-soft);
 
-  --pico-primary: var(--df-ink);
-  --pico-primary-background: var(--df-ink);
-  --pico-primary-border: var(--df-ink);
-  --pico-primary-hover: #000000;
-  --pico-primary-hover-background: #2c2c2a;
-  --pico-primary-hover-border: #2c2c2a;
-  --pico-primary-inverse: #f7f7f5;
+  --pico-primary: var(--df-accent);
+  --pico-primary-background: var(--df-accent);
+  --pico-primary-border: var(--df-accent);
+  --pico-primary-hover: #9a3412; /* Более глубокий оттенок при наведении */
+  --pico-primary-hover-background: #9a3412;
+  --pico-primary-hover-border: #9a3412;
+  --pico-primary-inverse: #ffffff;
   --pico-primary-focus: var(--df-accent-ring);
-  --pico-primary-underline: rgba(17, 17, 17, 0.28);
-  --pico-primary-hover-underline: rgba(17, 17, 17, 0.6);
+  --pico-primary-underline: rgba(194, 65, 12, 0.3);
+  --pico-primary-hover-underline: var(--df-accent);
 
-  --pico-secondary: var(--df-ink-soft);
-  --pico-secondary-background: var(--df-ink-soft);
-  --pico-secondary-border: var(--df-ink-soft);
-  --pico-secondary-hover: var(--df-ink);
-  --pico-secondary-hover-background: var(--df-ink);
-  --pico-secondary-hover-border: var(--df-ink);
-  --pico-secondary-inverse: #f7f7f5;
-  --pico-secondary-focus: var(--df-accent-ring);
-
-  --pico-contrast: var(--df-ink);
-  --pico-contrast-background: var(--df-ink);
-  --pico-contrast-border: var(--df-ink);
-  --pico-contrast-hover: #000000;
-  --pico-contrast-hover-background: #000000;
-  --pico-contrast-hover-border: #000000;
-  --pico-contrast-inverse: #f7f7f5;
-  --pico-contrast-focus: var(--df-accent-ring);
-
-  --pico-form-element-background-color: var(--df-surface-raised);
-  --pico-form-element-border-color: var(--df-border);
+  --pico-form-element-background-color: var(--df-surface-white);
+  --pico-form-element-border-color: var(--df-border-strong);
   --pico-form-element-color: var(--df-ink);
   --pico-form-element-placeholder-color: var(--df-muted);
   --pico-form-element-active-background-color: var(--df-surface-white);
-  --pico-form-element-active-border-color: var(--df-ink);
+  --pico-form-element-active-border-color: var(--df-accent);
   --pico-form-element-focus-color: var(--df-accent-ring);
   --pico-form-element-selected-background-color: var(--df-accent-soft);
   --pico-form-element-invalid-border-color: var(--df-danger-border);
   --pico-form-element-invalid-active-border-color: var(--df-danger-ink);
-  --pico-form-element-invalid-focus-color: rgba(138, 47, 42, 0.35);
-  --pico-form-label-font-weight: 500;
+  --pico-form-element-invalid-focus-color: rgba(185, 28, 28, 0.15);
+  --pico-form-label-font-weight: 600;
 
-  --pico-button-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  --pico-button-box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   --pico-button-hover-box-shadow: var(--df-shadow-raised);
-
-  --pico-code-background-color: #ececea;
-  --pico-code-color: var(--df-ink-soft);
-  --pico-table-border-color: var(--df-border);
-  --pico-table-row-stripped-background-color: rgba(17, 17, 17, 0.03);
-  --pico-switch-background-color: var(--df-border-strong);
-  --pico-switch-checked-background-color: var(--df-ink);
-  --pico-range-border-color: var(--df-border);
-  --pico-range-active-border-color: var(--df-border-strong);
-  --pico-range-thumb-color: var(--df-ink);
-  --pico-range-thumb-border-color: var(--df-ink);
 }
 
-/* 3. Base typography and page frame
- * (restores the rules that lived in the removed inline <style> block)
- * ------------------------------------------------------------------ */
+/* 3. Base typography */
 html {
-  font-size: 112.5%;
+  font-size: 100%;
   scroll-behavior: smooth;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
   line-height: 1.6;
+  letter-spacing: -0.01em;
 }
 
 main.container {
-  padding-block: 1.5rem 4rem;
-  max-width: 1180px;
+  padding-block: 2.5rem 5rem;
+  max-width: 1200px;
 }
 
 main > header {
-  margin-bottom: 2.5rem;
+  margin-bottom: 3rem;
 }
 
 main > header h1 {
-  margin-bottom: 0.25rem;
-  letter-spacing: -0.02em;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-size: 2.25rem;
 }
 
+/* Мерцающий квадрат в теплой гамме */
 main > header h1::after {
   content: "";
   display: inline-block;
-  vertical-align: baseline;
-  width: 0.5em;
-  height: 0.5em;
-  margin-inline-start: 0.25em;
-  border-radius: 50%;
+  vertical-align: text-bottom;
+  width: 0.45em;
+  height: 0.45em;
+  margin-inline-start: 0.2em;
   background: var(--df-accent);
-  box-shadow: inset 0 0 0 1px var(--df-accent-line);
+  animation: cursor-blink 1.5s steps(2) infinite;
 }
 
-section[id] {
-  /* Keep a breathing gap above a section when it is reached via #anchor. */
-  scroll-margin-block-start: 2rem;
+@keyframes cursor-blink {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
 }
 
-/* 4. Section rhythm: soft separator instead of Pico's default hairline */
+/* 4. Section rhythm */
 main > section {
-  padding-block: 2rem;
-  border-bottom: 1px solid var(--pico-muted-border-color);
+  padding-block: 2.5rem;
+  border-bottom: 1px solid var(--df-border);
 }
 
 main > section:last-of-type {
@@ -183,15 +146,11 @@ main > section:last-of-type {
 
 main > section > h2 {
   margin-bottom: 1.5rem;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  font-size: 1.5rem;
 }
 
-/* 5. Card grid
- *
- * Sections become grids so sibling <article> cards flow into columns on wide
- * screens. Headings and prose span every column, so #overview (which has no
- * <article>) keeps its normal stacked reading order.
- */
+/* 5. Card grid */
 main > section {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -208,10 +167,6 @@ main > section > :is(h2, p) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1.75rem;
   }
-
-  /* <h2> is child 1, so cards start at index 2. An odd card count leaves the
-   * last card on an even index; let it fill the row instead of stranding it
-   * next to empty space (#documents has three cards). */
   main > section > article:nth-child(even):last-child {
     grid-column: 1 / -1;
   }
@@ -224,304 +179,216 @@ main > section > article {
   max-height: none;
   margin-block: 0;
   padding: 1.75rem;
-  border: 1px solid var(--pico-card-border-color);
+  border: 1px solid var(--df-border);
   border-radius: var(--df-radius-card);
   background: var(--pico-card-background-color);
   box-shadow: var(--pico-card-box-shadow);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+main > section > article:hover {
+  border-color: var(--df-border-strong);
+  box-shadow: var(--df-shadow-raised);
 }
 
 main > section > article > h3 {
   margin-bottom: 1.25rem;
   font-size: 1.15rem;
-  letter-spacing: -0.01em;
+  font-weight: 600;
 }
 
 main > section > article > :is(p, form) + p[role] {
-  margin-top: 1rem;
+  margin-top: 1.25rem;
 }
 
-/* Descriptive prose at the top of a card. The :not([role]) guard matters:
- * in most cards the status message is the *only* <p>, and this selector would
- * otherwise outweigh p[role="status"] and paint success text in muted grey. */
 main > section > article > p:first-of-type:not([role]) {
-  margin-bottom: 1.25rem;
-  color: var(--pico-muted-color);
+  margin-bottom: 1.5rem;
+  color: var(--df-ink-soft);
+  font-size: 0.95rem;
 }
 
 /* 7. Navigation */
 nav ul {
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.5rem;
 }
 
 main > header nav a {
-  padding: 0.4rem 0.9rem;
-  border: 1px solid transparent;
-  border-radius: var(--df-radius-pill);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-control);
   text-decoration: none;
-  transition:
-    background-color var(--pico-transition),
-    border-color var(--pico-transition),
-    color var(--pico-transition);
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--df-surface-white);
+  color: var(--df-ink-soft);
+  box-shadow: 0 1px 2px rgba(41, 37, 36, 0.02);
+  transition: all 0.2s;
 }
 
 main > header nav a:hover {
-  border-color: var(--pico-muted-border-color);
-  background: var(--df-surface);
+  border-color: var(--df-accent-line);
+  color: var(--df-accent);
 }
 
 /* 8. Forms and controls */
-:root[data-theme="light"] {
-  /* Darker select chevron so it reads on the light card surface. Same SVG as
-   * Pico's default, only the stroke colour changes. */
-  --pico-icon-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgb(60, 60, 58)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-}
-
 article label {
-  color: var(--df-ink-soft);
-  font-size: 0.9rem;
+  color: var(--df-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  display: block;
 }
 
-/* Empty assignment selects act as placeholders until the user picks a value. */
 .assignment-placeholder:has(option:checked[value=""]) {
   color: var(--pico-form-element-placeholder-color);
 }
 
-/* Exclude :focus/:active so Pico's ink focus border keeps winning there. */
 article :is(input, select, textarea):not([type="file"]):hover:not(:focus, :active) {
-  border-color: var(--df-border-strong);
+  border-color: var(--df-muted);
 }
 
-/* Multi-selects (order/report groups) would collapse to a tiny box otherwise.
- * Pico only adds the chevron to `select:not([multiple],[size])`, so nothing to
- * undo here. */
 select[multiple] {
   min-height: 8.5rem;
   padding: 0.5rem;
 }
 
 select[multiple] option {
-  padding: 0.35rem 0.5rem;
-  border-radius: 8px;
+  padding: 0.4rem 0.5rem;
+  border-radius: 4px;
 }
 
-/* File inputs become drop-zone-like cards instead of a bare widget row.
- *
- * Bug being fixed: the native "Choose File" pill stuck out of the dashed frame.
- * WebKit/Blink give input[type=file] an intrinsic height in their UA
- * stylesheet, and Pico sets `*,::before,::after{box-sizing:border-box}`. With
- * border-box, large padding shrinks the *content box* instead of growing the
- * element, while the shadow-DOM button keeps its own intrinsic height — so it
- * overflows the frame vertically. The fix is to neutralise that intrinsic
- * height and pin the button's metrics so the line box around it is exactly as
- * tall as the button itself. */
+/* File inputs - Dashboard Drop-zone */
 input[type="file"] {
   height: auto;
   min-height: 0;
-  padding: 0.9rem 1.1rem;
-  border: 1px dashed var(--df-border-strong);
+  padding: 1.25rem;
+  border: 1px dashed var(--df-muted);
   border-radius: var(--df-radius-control);
   background: var(--df-surface-raised);
-  color: var(--df-muted);
+  color: var(--df-ink-soft);
   font-size: 0.9rem;
-  line-height: 1.4;
+  text-align: center;
+  transition: all 0.2s;
 }
 
 input[type="file"]:hover {
-  border-color: var(--df-ink-soft);
-  background: var(--df-surface-white);
+  border-color: var(--df-accent);
+  background: var(--df-accent-soft);
 }
 
 input[type="file"]::file-selector-button {
   margin-inline-end: 1rem;
-  padding: 0.45rem 1.1rem;
-  border: 0;
-  border-radius: var(--df-radius-pill);
-  background: var(--df-ink);
-  color: #f7f7f5;
-  /* Pico forces font-size:1rem and line-height:1.5 on every button, including
-   * this pseudo-element, which made the pill taller than the 0.9rem input it
-   * sits in. Match the surrounding field instead. */
-  font-size: 0.9rem;
-  line-height: 1.4;
-  font-weight: 500;
-  /* Baseline alignment (the default for inline-block) adds the parent strut's
-   * descender below the pill, inflating the line box. Middle alignment removes
-   * that and centres the label against the pill. */
-  vertical-align: middle;
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--df-border-strong);
+  border-radius: var(--df-radius-control);
+  background: var(--df-surface-white);
+  color: var(--df-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 input[type="file"]::file-selector-button:hover {
-  background: #2c2c2a;
+  background: var(--df-canvas);
+  border-color: var(--df-ink);
 }
 
-/* Submit buttons: dark pills with a soft lift, echoing the reference CTA.
- * The hover shadow itself comes from --pico-button-hover-box-shadow, which Pico
- * applies on :hover/:active/:focus, so only the transform is declared here. */
+/* Submit buttons */
 article button[type="submit"] {
-  margin-top: 0.5rem;
-  border: 0;
-  border-radius: var(--df-radius-pill);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  transition:
-    background-color var(--pico-transition),
-    box-shadow var(--pico-transition),
-    transform var(--pico-transition);
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--df-radius-control);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
 }
 
 article button[type="submit"]:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
-article button[type="submit"]:active:not(:disabled) {
-  --pico-button-hover-box-shadow: 0 0 0 rgba(0, 0, 0, 0);
-  transform: translateY(0);
-}
-
-article button[type="submit"]:disabled {
-  background: var(--df-border-strong);
-  color: var(--df-surface-white);
-  opacity: 1;
-  cursor: progress;
-}
-
-/* Keyboard focus: Pico's translucent ring alone is too low-contrast on the
- * pale canvas, so add a crisp ink outline on top of it. */
+/* Crisp focus rings */
 :where(a, button, input, select, textarea, summary):focus-visible {
-  outline: 2px solid var(--df-ink);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--df-surface-white), 0 0 0 4px var(--df-accent);
 }
 
-/* 9. Inline links inside prose */
-main > section > p a {
-  padding: 0.1rem 0.35rem;
-  margin-inline: -0.15rem;
-  border-radius: 8px;
-  text-decoration-thickness: 1px;
-}
-
-main > section > p a:hover {
-  background: var(--df-accent-soft);
-}
-
-/* 10. Status and error messages
- * app.js toggles role="status" / role="alert" and the hidden attribute, so
- * these two attribute selectors are the whole success/error contract.
- */
+/* 10. Status and error messages */
 p[role="status"],
 p[role="alert"] {
   margin-bottom: 0;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--df-border);
+  border-left: 4px solid var(--df-accent);
   border-radius: var(--df-radius-control);
-  background: var(--df-surface-white);
+  background: var(--df-surface-raised);
   color: var(--df-ink-soft);
   font-size: 0.9rem;
 }
 
 p[role="alert"] {
   border-color: var(--df-danger-border);
+  border-left-color: var(--df-danger-ink);
   background: var(--df-danger-bg);
   color: var(--df-danger-ink);
 }
 
-/* 11. Hash navigation target highlight (pure CSS, no JS hook needed) */
-main > section:target > h2 {
-  display: inline-block;
-  padding: 0.1rem 0.5rem;
-  margin-inline-start: -0.5rem;
-  border-radius: 10px;
-  background: var(--df-accent-soft);
-}
-
-/* 12. Background: warm glow on the root, drifting binary field on body
- *
- * The glow gradients live on :root so they paint with the page background.
- * The 0/1 tiles are two fixed pseudo-element layers with negative z-index:
- * they therefore sit above the root background but below all content, and the
- * opaque cards keep the text areas clean, like the reference panels.
+/* 12. Background: Data Matrix Flow (0s and 1s)
+ * Цифры перекрашены в теплый каменно-серый цвет (%23a8a29e)
  */
 :root[data-theme="light"] {
-  background-image:
-    radial-gradient(
-      52rem 34rem at 88% -8%,
-      rgba(242, 229, 138, 0.34),
-      rgba(242, 229, 138, 0) 68%
-    ),
-    radial-gradient(
-      44rem 30rem at 4% 104%,
-      rgba(17, 17, 17, 0.05),
-      rgba(17, 17, 17, 0) 70%
-    );
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: var(--df-canvas);
 }
 
 body::before,
 body::after {
   content: "";
   position: fixed;
-  /* Oversized by more than one tile in every direction so the drift loop can
-   * never expose an unpainted edge. */
   inset: -360px;
   z-index: -1;
   pointer-events: none;
   background-repeat: repeat;
   will-change: transform;
+  transition: opacity 0.4s ease;
 }
 
-/* Foreground digits: larger, slightly stronger, faster. */
+/* Ближний слой */
 body::before {
-  opacity: 0.075;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'%3E%3Cg fill='%23111111' font-family='monospace' font-size='14' text-anchor='middle'%3E%3Ctext x='24' y='30'%3E1%3C/text%3E%3Ctext x='96' y='18'%3E0%3C/text%3E%3Ctext x='150' y='52'%3E1%3C/text%3E%3Ctext x='214' y='26'%3E0%3C/text%3E%3Ctext x='286' y='44'%3E1%3C/text%3E%3Ctext x='70' y='52'%3E10110%3C/text%3E%3Ctext x='40' y='78'%3E0%3C/text%3E%3Ctext x='120' y='96'%3E1%3C/text%3E%3Ctext x='196' y='74'%3E0%3C/text%3E%3Ctext x='250' y='78'%3E01001100%3C/text%3E%3Ctext x='268' y='108'%3E1%3C/text%3E%3Ctext x='18' y='132'%3E0%3C/text%3E%3Ctext x='86' y='156'%3E1%3C/text%3E%3Ctext x='160' y='138'%3E0%3C/text%3E%3Ctext x='232' y='168'%3E1%3C/text%3E%3Ctext x='300' y='146'%3E0%3C/text%3E%3Ctext x='52' y='190'%3E1%3C/text%3E%3Ctext x='128' y='206'%3E0%3C/text%3E%3Ctext x='206' y='194'%3E1%3C/text%3E%3Ctext x='276' y='212'%3E0%3C/text%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='220' viewBox='0 0 320 220'%3E%3Cg fill='%23a8a29e' font-family='monospace' font-weight='bold' font-size='14' text-anchor='middle'%3E%3Ctext x='24' y='30'%3E1%3C/text%3E%3Ctext x='96' y='18'%3E0%3C/text%3E%3Ctext x='150' y='52'%3E1%3C/text%3E%3Ctext x='214' y='26'%3E0%3C/text%3E%3Ctext x='286' y='44'%3E1%3C/text%3E%3Ctext x='70' y='52'%3E10110%3C/text%3E%3Ctext x='40' y='78'%3E0%3C/text%3E%3Ctext x='120' y='96'%3E1%3C/text%3E%3Ctext x='196' y='74'%3E0%3C/text%3E%3Ctext x='250' y='78'%3E01001100%3C/text%3E%3Ctext x='268' y='108'%3E1%3C/text%3E%3Ctext x='18' y='132'%3E0%3C/text%3E%3Ctext x='86' y='156'%3E1%3C/text%3E%3Ctext x='160' y='138'%3E0%3C/text%3E%3Ctext x='232' y='168'%3E1%3C/text%3E%3Ctext x='300' y='146'%3E0%3C/text%3E%3Ctext x='52' y='190'%3E1%3C/text%3E%3Ctext x='128' y='206'%3E0%3C/text%3E%3Ctext x='206' y='194'%3E1%3C/text%3E%3Ctext x='276' y='212'%3E0%3C/text%3E%3C/g%3E%3C/svg%3E");
   animation: df-drift-near 90s linear infinite;
 }
 
-/* Background digits: smaller, fainter, slower, opposite diagonal => parallax. */
+/* Дальний слой */
 body::after {
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Cg fill='%23111111' font-family='monospace' font-size='9' text-anchor='middle'%3E%3Ctext x='18' y='22'%3E0%3C/text%3E%3Ctext x='62' y='14'%3E1%3C/text%3E%3Ctext x='108' y='30'%3E0%3C/text%3E%3Ctext x='156' y='20'%3E1%3C/text%3E%3Ctext x='186' y='44'%3E0%3C/text%3E%3Ctext x='30' y='52'%3E1%3C/text%3E%3Ctext x='84' y='64'%3E0%3C/text%3E%3Ctext x='132' y='58'%3E1%3C/text%3E%3Ctext x='172' y='86'%3E0%3C/text%3E%3Ctext x='120' y='92'%3E0101%3C/text%3E%3Ctext x='14' y='92'%3E1%3C/text%3E%3Ctext x='58' y='104'%3E0%3C/text%3E%3Ctext x='106' y='118'%3E1%3C/text%3E%3Ctext x='150' y='124'%3E0%3C/text%3E%3Ctext x='24' y='132'%3E1%3C/text%3E%3Ctext x='86' y='142'%3E0%3C/text%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Cg fill='%23a8a29e' font-family='monospace' font-weight='bold' font-size='9' text-anchor='middle'%3E%3Ctext x='18' y='22'%3E0%3C/text%3E%3Ctext x='62' y='14'%3E1%3C/text%3E%3Ctext x='108' y='30'%3E0%3C/text%3E%3Ctext x='156' y='20'%3E1%3C/text%3E%3Ctext x='186' y='44'%3E0%3C/text%3E%3Ctext x='30' y='52'%3E1%3C/text%3E%3Ctext x='84' y='64'%3E0%3C/text%3E%3Ctext x='132' y='58'%3E1%3C/text%3E%3Ctext x='172' y='86'%3E0%3C/text%3E%3Ctext x='120' y='92'%3E0101%3C/text%3E%3Ctext x='14' y='92'%3E1%3C/text%3E%3Ctext x='58' y='104'%3E0%3C/text%3E%3Ctext x='106' y='118'%3E1%3C/text%3E%3Ctext x='150' y='124'%3E0%3C/text%3E%3Ctext x='24' y='132'%3E1%3C/text%3E%3Ctext x='86' y='142'%3E0%3C/text%3E%3C/g%3E%3C/svg%3E");
   animation: df-drift-far 140s linear infinite;
 }
 
-/* Each loop translates by exactly one tile, so the repeating pattern is
- * pixel-identical at 0% and 100%: seamless, no JS, no extra elements. */
+/* Интерактивное оживание фона при наведении на любую карточку */
+body:has(article:hover)::before {
+  opacity: 0.15;
+}
+
 @keyframes df-drift-near {
-  to {
-    transform: translate3d(-320px, -220px, 0);
-  }
+  to { transform: translate3d(-320px, -220px, 0); }
 }
 
 @keyframes df-drift-far {
-  to {
-    transform: translate3d(200px, -150px, 0);
-  }
+  to { transform: translate3d(200px, -150px, 0); }
 }
 
 /* 13. Accessibility and print */
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  body::before,
-  body::after,
-  article button[type="submit"] {
-    animation: none;
-    transition: none;
-    transform: none;
-  }
+  html { scroll-behavior: auto; }
+  body::before, body::after, article button[type="submit"] { animation: none; transition: none; transform: none; }
 }
 
 @media print {
-  body::before,
-  body::after {
-    display: none;
-  }
-
-  main > section > article {
-    box-shadow: none;
-    break-inside: avoid;
-  }
+  body::before, body::after { display: none; }
+  main > section > article { box-shadow: none; break-inside: avoid; }
 }
