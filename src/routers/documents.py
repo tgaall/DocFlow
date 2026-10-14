@@ -60,10 +60,11 @@ async def download_directions(
     )
 
 
+# TODO: Заменить группы на практики
 @order_router.get(
     "/order",
     status_code=status.HTTP_200_OK,
-    summary="Скачать приказ по выбранным группам или всем студентам",
+    summary="Скачать приказ по выбранным практикам или всем студентам",
     responses={
         200: {
             "content": {DOCX_MEDIA_TYPE: {}},
@@ -73,14 +74,10 @@ async def download_directions(
     },
 )
 async def download_order(
-    practice_type: str,
     session: AsyncSession = Depends(get_async_session),
-    groups: Annotated[list[str] | None, Query()] = None,
+    practice_ids: Annotated[list[int] | None, Query()] = None,
 ) -> Response:
-    rows = await AssignmentRepository(session).get_order_rows(
-        groups=groups,
-        practice_type=practice_type,
-    )
+    rows = await AssignmentRepository(session).get_order_rows(practice_ids=practice_ids)
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -136,10 +136,10 @@ class AssignmentRepository:
             await self.session.rollback()
             raise
 
+    # TODO: Сделать practice_ids, выбор по практикам, а не по группам.
     async def get_order_rows(
         self,
-        practice_type: str,
-        groups: list[str] | None = None,
+        practice_ids: list[int] | None = None,
     ) -> list[dict[str, str]]:
         statement = (
             select(Student, Assignment, Organization, Practice, Supervisor, Group)
@@ -150,18 +150,26 @@ class AssignmentRepository:
             .join(Group, Group.id == Student.group_id)
             .order_by(Student.id, Assignment.id)
         )
-        if groups:
-            statement = statement.where(Group.name.in_(groups))
-        statement = statement.where(Practice.type == practice_type)
+        if practice_ids:
+            statement = statement.where(Practice.id.in_(practice_ids))
         result = await self.session.execute(statement)
 
         rows: list[dict[str, str]] = []
-        for student, assignment, organization, practice, supervisor, group in result.all():
+        for (
+            student,
+            assignment,
+            organization,
+            practice,
+            supervisor,
+            group,
+        ) in result.all():
             organization_display = ""
             if organization is not None:
                 organization_display = organization.name
                 if organization.address:
-                    organization_display = f"{organization.name}, {organization.address}"
+                    organization_display = (
+                        f"{organization.name}, {organization.address}"
+                    )
 
             rows.append(
                 {
