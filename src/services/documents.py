@@ -51,7 +51,7 @@ def render_order(rows: list[dict[str, str]]) -> bytes:
     return buffer.getvalue()
 
 
-def render_report(groups_data: list[dict], practice_type: str) -> bytes:
+def render_report(groups_data: list[dict]) -> bytes:
     """
     Сгенерировать отчет по шаблону Report_template.docx
 
@@ -66,7 +66,7 @@ def render_report(groups_data: list[dict], practice_type: str) -> bytes:
         practice_type: тип практики
     """
     doc = DocxTemplate(str(REPORT_TEMPLATE))
-    doc.render({"groups": groups_data, "practice_type": practice_type})
+    doc.render({"groups": groups_data})  # TODO: добавить тип практики
 
     buffer = BytesIO()
     doc.save(buffer)

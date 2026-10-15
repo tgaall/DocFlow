@@ -13,12 +13,13 @@ class ReportRepository:
 
     async def get_groups_report_data(
         self,
-        practice_type: str | None = None,
-        groups: list[str] | None = None,
+        practice_ids: list[int] | None = None,
+        # practice_type: str | None = None,
+        # groups: list[str] | None = None,
     ) -> list[dict]:
         """
         Получить данные для отчета по группам
-        
+
         Returns:
             Список словарей с данными по группам для шаблона Report_template.docx
         """
@@ -47,7 +48,7 @@ class ReportRepository:
             .outerjoin(
                 Assignment,
                 (Assignment.student_id == Student.id)
-                & (Assignment.practice_id == Practice.id)
+                & (Assignment.practice_id == Practice.id),
             )
             .group_by(
                 Group.id,
@@ -59,22 +60,21 @@ class ReportRepository:
             )
             .order_by(Group.name)
         )
-        
+
         # Применить фильтры
-        if practice_type:
-            stmt = stmt.where(Practice.type == practice_type)
-        if groups:
-            stmt = stmt.where(Group.name.in_(groups))
-        
+        if practice_ids:
+            stmt = stmt.where(Practice.id.in_(practice_ids))
+
         result = await self.session.execute(stmt)
         rows = result.all()
-        
+
         # Преобразовать в формат для шаблона
         report_data: list[dict[str, str | int]] = []
         for row in rows:
             report_data.append(
                 {
                     "group_name": row.group_name,
+                    "practice_type": row.practice_type,
                     "start_date": (
                         row.start_date.strftime("%d.%m.%Y") if row.start_date else ""
                     ),
@@ -85,7 +85,7 @@ class ReportRepository:
                     "payed_students": row.payed_students_count or 0,
                 }
             )
-        
+
         return report_data
 
     async def create_group_report(
@@ -107,7 +107,7 @@ class ReportRepository:
             payed_students_count=payed_students_count,
             report_date=date.today(),
         )
-        
+
         self.session.add(report)
         await self.session.commit()
         await self.session.refresh(report)

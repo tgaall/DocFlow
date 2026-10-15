@@ -103,14 +103,13 @@ async def download_order(
         404: {"description": "Нет данных для отчета"},
     },
 )
+# TODO: заменить группы на айди практик
 async def download_report(
-    practice_type: str | None = None,
-    groups: Annotated[list[str] | None, Query()] = None,
+    practice_ids: Annotated[list[int] | None, Query()] = None,
     session: AsyncSession = Depends(get_async_session),
 ) -> Response:
     groups_data = await ReportRepository(session).get_groups_report_data(
-        practice_type=practice_type,
-        groups=groups,
+        practice_ids=practice_ids
     )
     if not groups_data:
         raise HTTPException(
@@ -119,7 +118,7 @@ async def download_report(
         )
 
     return Response(
-        content=render_report(groups_data, practice_type or "Практика"),
+        content=render_report(groups_data),
         media_type=DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": 'attachment; filename="report.docx"'},
     )
