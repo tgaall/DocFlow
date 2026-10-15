@@ -9,7 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <link rel="stylesheet" href="/app/style.css" />
-    <script src="/app/app.js" defer></script>
+    <script src="/app/app.js?v=3" defer></script>
   </head>
   <body>
     <!-- data-theme="light" pins Pico's light theme so its
@@ -293,16 +293,8 @@
         <article>
           <h3>Приказ</h3>
           <form id="order-form">
-            <label for="order-practice-type">Тип практики</label>
-            <input
-              id="order-practice-type"
-              name="practice_type"
-              list="practice-types"
-              required
-            />
-
-            <label for="order-groups">Группы (необязательно; пусто — все группы)</label>
-            <select id="order-groups" name="groups" multiple></select>
+            <label for="order-practices">Практики (необязательно; пусто — все практики)</label>
+            <select id="order-practices" name="practice_ids" multiple></select>
             <button type="submit">Скачать приказ</button>
           </form>
           <p id="order-message" role="alert" hidden></p>
@@ -311,15 +303,8 @@
         <article>
           <h3>Отчёт</h3>
           <form id="report-form">
-            <label for="report-practice-type">Тип практики (необязательно)</label>
-            <input
-              id="report-practice-type"
-              name="practice_type"
-              list="practice-types"
-            />
-
-            <label for="report-groups">Группы (необязательно; пусто — все группы)</label>
-            <select id="report-groups" name="groups" multiple></select>
+            <label for="report-practices">Практики (необязательно; пусто — все практики)</label>
+            <select id="report-practices" name="practice_ids" multiple></select>
             <button type="submit">Скачать отчёт</button>
           </form>
           <p id="report-message" role="alert" hidden></p>

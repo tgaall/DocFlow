@@ -5,6 +5,7 @@ const data = {
   supervisors: [],
   practices: [],
 };
+const SELECT_ALL_PRACTICES_VALUE = "__select_all_practices__";
 
 async function api(url, options) {
   const response = await fetch(url, options);
@@ -45,11 +46,20 @@ function updatePracticeSelectors() {
     groupSelect.add(new Option(group.name, group.name));
   });
 
-  ["order-groups", "report-groups"].forEach((selectId) => {
-    const groupsSelect = document.getElementById(selectId);
-    groupsSelect.replaceChildren();
-    data.groups.forEach((group) => {
-      groupsSelect.add(new Option(group.name, group.name));
+  ["order-practices", "report-practices"].forEach((selectId) => {
+    const practicesSelect = document.getElementById(selectId);
+    practicesSelect.replaceChildren(
+      new Option("Выбрать все", SELECT_ALL_PRACTICES_VALUE),
+    );
+    data.practices.forEach((practice) => {
+      const group = data.groups.find((item) => item.id === practice.group_id);
+      const groupName = group ? group.name : "Группа не найдена";
+      practicesSelect.add(
+        new Option(
+          `${practice.type} — ${groupName} (${practice.start_date} – ${practice.end_date})`,
+          String(practice.id),
+        ),
+      );
     });
   });
 
@@ -251,15 +261,14 @@ async function downloadDocument(form, endpoint, messageId, fallbackFilename) {
   const query = new URLSearchParams();
   const formData = new FormData(form);
 
-  for (const group of formData.getAll("groups")) {
-    query.append("groups", group);
+  for (const practiceId of formData.getAll("practice_ids")) {
+    if (practiceId !== SELECT_ALL_PRACTICES_VALUE) {
+      query.append("practice_ids", practiceId);
+    }
   }
 
   if (formData.has("practice_id") && formData.get("practice_id")) {
     query.set("practice_id", formData.get("practice_id"));
-  }
-  if (formData.has("practice_type") && formData.get("practice_type")) {
-    query.set("practice_type", formData.get("practice_type"));
   }
 
   const queryString = query.toString();
@@ -325,6 +334,22 @@ async function submitAssignmentForm(form, endpoint, messageId, successText) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  ["order-practices", "report-practices"].forEach((selectId) => {
+    document.getElementById(selectId).addEventListener("change", (event) => {
+      const select = event.currentTarget;
+      const selectAllOption = Array.from(select.selectedOptions).find(
+        (option) => option.value === SELECT_ALL_PRACTICES_VALUE,
+      );
+      if (!selectAllOption) {
+        return;
+      }
+
+      Array.from(select.options).forEach((option) => {
+        option.selected = option !== selectAllOption;
+      });
+    });
+  });
+
   document
     .getElementById("students-import-form")
     .addEventListener("submit", (event) => {
