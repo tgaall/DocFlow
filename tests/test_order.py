@@ -8,13 +8,114 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.db.base import Base
-from src.models.domain import Assignment, Group, Organization, Practice, Student
+from src.models.domain import (
+    Assignment,
+    Group,
+    Organization,
+    Practice,
+    Student,
+    Supervisor,
+)
 from src.repositories.assignments import AssignmentRepository
 from src.repositories.reports import ReportRepository
-from src.services.documents import render_order
+from src.services.documents import render_order, render_report
 
 
 class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_report_includes_grade_counts_companies_and_supervisors(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            engine = create_async_engine(
+                f"sqlite+aiosqlite:///{Path(temp_dir) / 'report-context.db'}"
+            )
+            try:
+                async with engine.begin() as connection:
+                    await connection.run_sync(Base.metadata.create_all)
+                sessions = async_sessionmaker(engine, expire_on_commit=False)
+                async with sessions() as session:
+                    group = Group(name="ГР-25", year=2025)
+                    organization = Organization(name="ООО Ромашка")
+                    department_supervisor = Supervisor(
+                        full_name="Иванов Иван Иванович", position="преподаватель"
+                    )
+                    workplace_supervisor = Supervisor(
+                        full_name="Петров Петр Петрович", position="инженер"
+                    )
+                    session.add_all(
+                        [group, organization, department_supervisor, workplace_supervisor]
+                    )
+                    await session.flush()
+                    practice = Practice(
+                        type="Учебная",
+                        start_date=date(2026, 6, 1),
+                        end_date=date(2026, 6, 30),
+                        group_id=group.id,
+                        supervisor_id=department_supervisor.id,
+                    )
+                    students = [
+                        Student(
+                            full_name=f"Студент {grade}",
+                            group_id=group.id,
+                            record_book=5000 + grade,
+                            grade=grade,
+                        )
+                        for grade in (5, 4, 3, 2)
+                    ]
+                    session.add_all([practice, *students])
+                    await session.flush()
+                    session.add_all(
+                        [
+                            Assignment(
+                                student_id=student.id,
+                                organization_id=organization.id,
+                                practice_id=practice.id,
+                                supervisor_id=workplace_supervisor.id,
+                                payment_type="С оплатой" if student.grade == 5 else "Без оплаты",
+                            )
+                            for student in students
+                        ]
+                    )
+                    await session.commit()
+
+                    repository = ReportRepository(session)
+                    groups = await repository.get_groups_report_data(
+                        practice_ids=[practice.id]
+                    )
+                    companies = await repository.get_companies_report_data(
+                        practice_ids=[practice.id]
+                    )
+                    supervisors = await repository.get_department_supervisors(
+                        practice_ids=[practice.id]
+                    )
+
+                self.assertEqual(
+                    [groups[0][f"count{grade}"] for grade in (5, 4, 3, 2)],
+                    [1, 1, 1, 1],
+                )
+                self.assertEqual(groups[0]["count_stud"], 4)
+                self.assertEqual(groups[0]["payed_students"], 1)
+                self.assertEqual(companies[0]["name"], "ООО Ромашка")
+                self.assertEqual(companies[0]["count"], 4)
+                self.assertEqual(companies[0]["supervisors"], "Петров Петр Петрович")
+                self.assertEqual(supervisors, "Иванов Иван Иванович")
+
+                document = Document(
+                    BytesIO(render_report(groups, companies, supervisors))
+                )
+                document_text = "\n".join(
+                    [paragraph.text for paragraph in document.paragraphs]
+                    + [
+                        cell.text
+                        for table in document.tables
+                        for row in table.rows
+                        for cell in row.cells
+                    ]
+                )
+                self.assertNotIn("{{", document_text)
+                self.assertIn("Иванов Иван Иванович", document_text)
+                self.assertIn("Петров Петр Петрович", document_text)
+            finally:
+                await engine.dispose()
+
     async def test_order_filters_assignments_by_practice_type(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "filtered-order.db"

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
 from src.schemas.imports import ImportResult
-from src.services.imports import import_organizations, import_students
+from src.services.imports import import_gradesheet, import_organizations, import_students
 
 router = APIRouter(prefix="/import", tags=["Import"])
 
@@ -65,5 +65,27 @@ async def import_organizations_endpoint(
 
     try:
         return await import_organizations(session, content)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/gradesheets",
+    response_model=ImportResult,
+    status_code=status.HTTP_200_OK,
+    summary="Импорт оценок из ведомости DOCX",
+)
+async def import_gradesheet_endpoint(
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_async_session),
+) -> ImportResult:
+    if not file.filename or not file.filename.lower().endswith(".docx"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Ожидается .docx файл",
+        )
+
+    try:
+        return await import_gradesheet(session, file.file)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

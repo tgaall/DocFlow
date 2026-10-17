@@ -21,6 +21,7 @@ class Student(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"))
     record_book: Mapped[int] = mapped_column(Integer, unique=True)
+    grade: Mapped[int] = mapped_column(Integer, nullable=True)
     group: Mapped["Group"] = relationship(back_populates="students")
 
 

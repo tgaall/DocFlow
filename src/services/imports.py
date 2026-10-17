@@ -1,9 +1,14 @@
 import io
 import re
+from pathlib import Path
+from typing import BinaryIO
 
 import pandas as pd
+from docx import Document
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.domain import Group, Student
 from src.repositories.organizations import OrganizationRepository
 from src.repositories.students import StudentRepository
 from src.schemas.imports import ImportResult
@@ -12,6 +17,9 @@ STUDENT_NAME_COLUMN = "Фамилия, имя, отчество"
 RECORD_BOOK_COLUMN = "Номер зачетки"
 GROUP_TITLE_PATTERN = re.compile(r"Список студентов группы\s+(.+)", re.IGNORECASE)
 ADDRESS_SUFFIX_PATTERN = re.compile(r"\s+(?P<address>(?:г|с|д)\.\s*.+)$", re.IGNORECASE)
+STATEMENT_GROUP_PATTERN = re.compile(
+    r"\b[А-ЯЁA-Z]{2,}\d{2}[А-ЯЁа-яё]?\-?\d{2}-\d{2}\b", re.IGNORECASE
+)
 
 
 def _read_excel(file_bytes: bytes) -> list[tuple[int, str, str, int]]:
@@ -83,6 +91,69 @@ def _read_excel(file_bytes: bytes) -> list[tuple[int, str, str, int]]:
     return records
 
 
+def parse_statement(source: str | Path | BinaryIO) -> list[dict[str, str | int]]:
+    """Parse a gradesheet DOCX into group, student name, and numeric grade records."""
+    grade_values = {
+        "отлично": 5,
+        "хорошо": 4,
+        "удовлетворительно": 3,
+        "неявка": 2,
+    }
+    document = Document(source)
+    text_parts = [paragraph.text for paragraph in document.paragraphs]
+    text_parts.extend(
+        cell.text for table in document.tables for row in table.rows for cell in row.cells
+    )
+    group_match = STATEMENT_GROUP_PATTERN.search(" ".join(text_parts))
+    if group_match is None:
+        raise ValueError("Не удалось определить группу в ведомости")
+    group = group_match.group(0)
+
+    students: list[dict[str, str | int]] = []
+    for table in document.tables:
+        name_column: int | None = None
+        grade_column: int | None = None
+
+        for row_index, row in enumerate(table.rows):
+            headers = [
+                re.sub(r"\s+", " ", cell.text).strip().lower()
+                for cell in row.cells
+            ]
+            for column_index, header in enumerate(headers):
+                if "фамилия" in header and "имя" in header:
+                    name_column = column_index
+                if "оценка" in header:
+                    grade_column = column_index
+
+            if name_column is None or grade_column is None:
+                continue
+
+            for student_row in table.rows[row_index + 1 :]:
+                if len(student_row.cells) <= max(name_column, grade_column):
+                    continue
+                full_name = re.sub(
+                    r"\s+", " ", student_row.cells[name_column].text
+                ).strip()
+                grade_text = re.sub(
+                    r"\s+", " ", student_row.cells[grade_column].text
+                ).strip().lower()
+                if not full_name or len(full_name.split()) > 4 or not grade_text:
+                    continue
+                grade = grade_values.get(grade_text)
+                if grade is None:
+                    raise ValueError(
+                        f"Неизвестная оценка {grade_text!r} для студента {full_name!r}"
+                    )
+                students.append(
+                    {"group": group, "full_name": full_name, "grade": grade}
+                )
+            break
+
+    if not students:
+        raise ValueError("В ведомости не найдены студенты с оценками")
+    return students
+
+
 def _parse_organizations(file_bytes: bytes) -> list[tuple[int, str, str | None]]:
     try:
         text = file_bytes.decode("cp1251")
@@ -136,6 +207,47 @@ async def import_students(session: AsyncSession, file_bytes: bytes) -> ImportRes
         raise
 
     return ImportResult(created=created, skipped=skipped)
+
+
+async def import_gradesheet(
+    session: AsyncSession, source: str | Path | BinaryIO
+) -> ImportResult:
+    records = parse_statement(source)
+    updated = 0
+    try:
+        group_result = await session.execute(
+            select(Group).where(Group.name == records[0]["group"])
+        )
+        group = group_result.scalar_one_or_none()
+        if group is None:
+            raise ValueError(f"Группа {records[0]['group']!r} не найдена в базе данных")
+
+        for record in records:
+            stmt = select(Student).where(
+                Student.group_id == group.id,
+                Student.full_name == record["full_name"],
+            )
+            result = await session.execute(stmt)
+            matching_students = list(result.scalars().all())
+            if not matching_students:
+                raise ValueError(
+                    f"Студент {record['full_name']!r} не найден в группе "
+                    f"{record['group']!r}"
+                )
+            if len(matching_students) > 1:
+                raise ValueError(
+                    f"В группе {record['group']!r} найдено несколько студентов "
+                    f"с ФИО {record['full_name']!r}"
+                )
+            matching_students[0].grade = record["grade"]
+            updated += 1
+
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+
+    return ImportResult(created=updated, skipped=0)
 
 
 async def import_organizations(
