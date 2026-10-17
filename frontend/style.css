@@ -244,6 +244,183 @@ article label {
   color: var(--pico-form-element-placeholder-color);
 }
 
+/* Group assignment table */
+#assignments {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#assignments > article:first-of-type {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.bulk-assignment-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bulk-assignment-filters label {
+  display: block;
+  color: var(--df-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.bulk-assignment-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-card);
+  background: var(--df-surface-raised);
+}
+
+.bulk-assignment-toolbar > strong {
+  padding-bottom: 0.65rem;
+  white-space: nowrap;
+}
+
+.bulk-assignment-defaults {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.bulk-control {
+  min-width: 0;
+}
+
+.bulk-control input[type="search"] {
+  margin-bottom: 0.35rem;
+}
+
+.bulk-control select,
+.bulk-control input[type="search"] {
+  margin-block: 0;
+}
+
+.bulk-assignment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.bulk-assignment-actions button,
+.bulk-assignment-footer button {
+  width: auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.bulk-table-scroll {
+  max-height: 65vh;
+  overflow: auto;
+  border: 1px solid var(--df-border);
+  border-radius: var(--df-radius-control);
+  background: var(--df-surface);
+}
+
+.bulk-assignment-table {
+  width: 100%;
+  min-width: 920px;
+  margin: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.bulk-assignment-table th,
+.bulk-assignment-table td {
+  min-width: 180px;
+  padding: 0.65rem;
+  vertical-align: middle;
+}
+
+.bulk-assignment-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--df-surface-raised);
+  box-shadow: 0 1px 0 var(--df-border-strong);
+}
+
+.bulk-assignment-table th:first-child {
+  min-width: 220px;
+}
+
+.bulk-assignment-table tbody th {
+  background: var(--df-surface);
+  font-weight: 500;
+  text-align: left;
+}
+
+.bulk-assignment-table tbody tr:nth-child(even) td,
+.bulk-assignment-table tbody tr:nth-child(even) th {
+  background: var(--df-canvas);
+}
+
+.bulk-assignment-table tbody tr.has-error td,
+.bulk-assignment-table tbody tr.has-error th {
+  background: var(--df-danger-bg);
+}
+
+.bulk-student-status {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-right: 0.55rem;
+  border-radius: 50%;
+  background: #a8a29e;
+  vertical-align: middle;
+}
+
+.bulk-student-status.is-complete {
+  background: #16a34a;
+}
+
+.bulk-row-error {
+  color: var(--df-danger-ink);
+  font-size: 0.85rem;
+}
+
+.bulk-assignment-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 900px) {
+  .bulk-assignment-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .bulk-assignment-toolbar > strong {
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .bulk-assignment-filters,
+  .bulk-assignment-defaults {
+    grid-template-columns: 1fr;
+  }
+
+  .bulk-assignment-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bulk-assignment-footer button {
+    width: 100%;
+  }
+}
+
 article :is(input, select, textarea):not([type="file"]):hover:not(:focus, :active) {
   border-color: var(--df-muted);
 }
