@@ -9,7 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <link rel="stylesheet" href="/app/style.css" />
-    <script src="/app/app.js?v=3" defer></script>
+    <script src="/app/app.js?v=4" defer></script>
   </head>
   <body>
     <!-- data-theme="light" pins Pico's light theme so its
@@ -152,127 +152,59 @@
         <h2>Распределение студентов</h2>
 
         <article>
-          <h3>Индивидуальное назначение</h3>
-          <form id="individual-assignment-form">
-            <label for="assignment-student">Студент</label>
-            <select id="assignment-student" name="student_id" required>
-              <option value="">Выберите студента</option>
-            </select>
+          <h3>Индивидуальное распределение</h3>
+          <div class="bulk-assignment-filters">
+            <div>
+              <label for="bulk-assignment-group">Группа</label>
+              <select id="bulk-assignment-group">
+                <option value="">Выберите группу</option>
+              </select>
+            </div>
+            <div>
+              <label for="bulk-assignment-practice">Практика</label>
+              <select id="bulk-assignment-practice" disabled>
+                <option value="">Сначала выберите группу</option>
+              </select>
+            </div>
+          </div>
 
-            <label for="assignment-organization">Организация</label>
-            <select
-              id="assignment-organization"
-              name="organization_id"
-              required
-            >
-              <option value="">Выберите организацию</option>
-            </select>
+          <div id="bulk-assignment-content" hidden>
+            <div class="bulk-assignment-toolbar">
+              <strong>Для всех</strong>
+              <div id="bulk-defaults" class="bulk-assignment-defaults"></div>
+              <div class="bulk-assignment-actions">
+                <button id="bulk-apply-all" type="button" class="secondary">
+                  Применить ко всем
+                </button>
+                <button id="bulk-reset" type="button" class="secondary outline">
+                  Сбросить
+                </button>
+              </div>
+            </div>
 
-            <label for="assignment-practice">Практика</label>
-            <select id="assignment-practice" name="practice_id" required>
-              <option value="">Выберите практику</option>
-            </select>
+            <div class="bulk-table-scroll">
+              <table class="bulk-assignment-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Студент</th>
+                    <th scope="col">Организация</th>
+                    <th scope="col">Руководитель</th>
+                    <th scope="col">Форма практики</th>
+                    <th scope="col">Тип оплаты</th>
+                  </tr>
+                </thead>
+                <tbody id="bulk-assignment-rows"></tbody>
+              </table>
+            </div>
 
-            <label for="assignment-supervisor">
-              Руководитель (необязательно)
-            </label>
-            <select id="assignment-supervisor" name="supervisor_id">
-              <option value="">Без руководителя</option>
-            </select>
-
-            <label for="assignment-practice-form">Форма практики</label>
-            <select
-              id="assignment-practice-form"
-              class="assignment-placeholder"
-              name="practice_form"
-            >
-              <option value="">Выберите форму практики</option>
-              <option value="Очно">Очно</option>
-              <option value="Дистанционно">Дистанционно</option>
-            </select>
-
-            <label for="assignment-payment-type">Тип оплаты</label>
-            <select
-              id="assignment-payment-type"
-              class="assignment-placeholder"
-              name="payment_type"
-            >
-              <option value="">Выберите тип оплаты</option>
-              <option value="С оплатой">С оплатой</option>
-              <option value="Без оплаты">Без оплаты</option>
-            </select>
-
-            <label for="assignment-grade">Оценка</label>
-            <input id="assignment-grade" name="grade" />
-
-            <button type="submit">Сохранить распределение</button>
-          </form>
-          <p id="individual-assignment-message" role="status" hidden></p>
+            <div class="bulk-assignment-footer">
+              <span id="bulk-assignment-count" aria-live="polite">Заполнено 0 из 0</span>
+              <button id="bulk-save" type="button">Сохранить распределение</button>
+            </div>
+          </div>
+          <p id="bulk-assignment-message" role="status" hidden></p>
         </article>
 
-        <article>
-          <h3>Массовое назначение</h3>
-          <p>Одна организация на всю группу</p>
-          <form id="mass-assignment-form">
-            <label for="mass-assignment-group">Группа</label>
-            <select id="mass-assignment-group" name="group_id" required>
-              <option value="">Выберите группу</option>
-            </select>
-
-            <label for="mass-assignment-organization">Организация</label>
-            <select
-              id="mass-assignment-organization"
-              name="organization_id"
-              required
-            >
-              <option value="">Выберите организацию</option>
-            </select>
-
-            <label for="mass-assignment-practice">Практика</label>
-            <select
-              id="mass-assignment-practice"
-              name="practice_id"
-              required
-            >
-              <option value="">Выберите практику</option>
-            </select>
-
-            <label for="mass-assignment-supervisor">
-              Руководитель (необязательно)
-            </label>
-            <select
-              id="mass-assignment-supervisor"
-              name="supervisor_id"
-            >
-              <option value="">Без руководителя</option>
-            </select>
-
-            <label for="mass-assignment-practice-form">Форма практики</label>
-            <select
-              id="mass-assignment-practice-form"
-              class="assignment-placeholder"
-              name="practice_form"
-            >
-              <option value="">Выберите форму практики</option>
-              <option value="Очно">Очно</option>
-              <option value="Дистанционно">Дистанционно</option>
-            </select>
-
-            <label for="mass-assignment-payment-type">Тип оплаты</label>
-            <select
-              id="mass-assignment-payment-type"
-              class="assignment-placeholder"
-              name="payment_type"
-            >
-              <option value="">Выберите тип оплаты</option>
-              <option value="С оплатой">С оплатой</option>
-              <option value="Без оплаты">Без оплаты</option>
-            </select>
-
-            <button type="submit">Назначить группе</button>
-          </form>
-          <p id="mass-assignment-message" role="status" hidden></p>
-        </article>
       </section>
 
       <section id="documents">
