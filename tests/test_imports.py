@@ -3,7 +3,9 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
+from fastapi import HTTPException, UploadFile
 from openpyxl import Workbook
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -11,8 +13,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from src.db.base import Base
 from src.db.bootstrap import migrate_legacy_schema
 from src.models.domain import Practice
+from src.routers.imports import import_gradesheet_endpoint
 from src.routers.practices import create_practice
-from src.schemas.imports import PracticeCreate
+from src.schemas.imports import ImportResult, PracticeCreate
 from src.services.imports import (
     _parse_organizations,
     _read_excel,
@@ -67,6 +70,31 @@ class ImportParsingTests(unittest.TestCase):
                 (3, "ФГБОУ ВО УГНТУ приемная комиссия", None),
             ],
         )
+
+
+class GradesheetEndpointTests(unittest.IsolatedAsyncioTestCase):
+    async def test_imports_pdf_and_returns_updated_grade_count(self) -> None:
+        session = object()
+        upload = UploadFile(file=io.BytesIO(b"pdf content"), filename="grades.pdf")
+        expected = ImportResult(created=2, skipped=0)
+
+        with patch(
+            "src.routers.imports.import_gradesheet",
+            new=AsyncMock(return_value=expected),
+        ) as import_mock:
+            result = await import_gradesheet_endpoint(file=upload, session=session)
+
+        self.assertEqual(result, expected)
+        import_mock.assert_awaited_once_with(session, upload.file)
+
+    async def test_rejects_file_without_pdf_extension(self) -> None:
+        upload = UploadFile(file=io.BytesIO(b"not a pdf"), filename="grades.txt")
+
+        with self.assertRaises(HTTPException) as context:
+            await import_gradesheet_endpoint(file=upload, session=object())
+
+        self.assertEqual(context.exception.status_code, 400)
+        self.assertEqual(context.exception.detail, "Ожидается .pdf файл")
 
 
 class ImportDatabaseTests(unittest.IsolatedAsyncioTestCase):

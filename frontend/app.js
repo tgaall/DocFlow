@@ -5,14 +5,8 @@ const data = {
   practices: [],
 };
 const SELECT_ALL_PRACTICES_VALUE = "__select_all_practices__";
-const NO_SUPERVISOR_VALUE = "__no_supervisor__";
-const BULK_FIELDS = [
-  { name: "organization_id", label: "Организация", placeholder: "Выберите организацию" },
-  { name: "supervisor_id", label: "Руководитель", placeholder: "Без руководителя" },
-  { name: "practice_form", label: "Форма практики", placeholder: "Выберите форму практики", options: ["Очно", "Дистанционно"] },
-  { name: "payment_type", label: "Тип оплаты", placeholder: "Выберите тип оплаты", options: ["С оплатой", "Без оплаты"] },
-];
-let bulkLoadSequence = 0;
+const PRACTICE_FORM_OPTIONS = ["Очно", "Дистанционно"];
+const PAYMENT_TYPE_OPTIONS = ["С оплатой", "Без оплаты"];
 
 async function api(url, options) {
   const response = await fetch(url, options);
@@ -46,324 +40,198 @@ function showMessage(elementId, text, isError) {
   element.setAttribute("role", isError ? "alert" : "status");
 }
 
-function updatePracticeSelectors() {
-  const groupSelect = document.getElementById("practice-group");
-  groupSelect.replaceChildren(new Option("Выберите группу", ""));
-  data.groups.forEach((group) => {
-    groupSelect.add(new Option(group.name, group.name));
+function fillSelect(select, placeholder, options) {
+  select.replaceChildren(new Option(placeholder, ""));
+  options.forEach(({ label, value }) => {
+    select.add(new Option(label, value));
   });
+}
+
+function groupOptions() {
+  return data.groups.map((group) => ({
+    label: group.name,
+    value: String(group.id),
+  }));
+}
+
+function organizationOptions() {
+  return data.organizations.map((organization) => ({
+    label: organization.name,
+    value: String(organization.id),
+  }));
+}
+
+function supervisorOptions() {
+  return data.supervisors.map((supervisor) => ({
+    label: supervisor.full_name,
+    value: String(supervisor.id),
+  }));
+}
+
+function stringOptions(values) {
+  return values.map((value) => ({ label: value, value }));
+}
+
+function practiceOptions() {
+  return data.practices.map((practice) => {
+    const group = data.groups.find((item) => item.id === practice.group_id);
+    const groupName = group ? group.name : "Группа не найдена";
+    return {
+      label: `${practice.type} — ${groupName} (${practice.start_date} – ${practice.end_date})`,
+      value: String(practice.id),
+    };
+  });
+}
+
+function updatePracticeSelectors() {
+  fillSelect(
+    document.getElementById("practice-group"),
+    "Выберите группу",
+    data.groups.map((group) => ({ label: group.name, value: group.name })),
+  );
+
+  const practices = practiceOptions();
 
   ["order-practices", "report-practices"].forEach((selectId) => {
     const practicesSelect = document.getElementById(selectId);
     practicesSelect.replaceChildren(
       new Option("Выбрать все", SELECT_ALL_PRACTICES_VALUE),
     );
-    data.practices.forEach((practice) => {
-      const group = data.groups.find((item) => item.id === practice.group_id);
-      const groupName = group ? group.name : "Группа не найдена";
-      practicesSelect.add(
-        new Option(
-          `${practice.type} — ${groupName} (${practice.start_date} – ${practice.end_date})`,
-          String(practice.id),
-        ),
-      );
+    practices.forEach(({ label, value }) => {
+      practicesSelect.add(new Option(label, value));
     });
   });
 
-  const supervisorSelect = document.getElementById("practice-supervisor");
-  supervisorSelect.replaceChildren(new Option("Без руководителя", ""));
-  data.supervisors.forEach((supervisor) => {
-    supervisorSelect.add(
-      new Option(supervisor.full_name, String(supervisor.id)),
-    );
-  });
+  fillSelect(
+    document.getElementById("directions-practice"),
+    "Выберите практику",
+    practices,
+  );
 
-  updateAssignmentSelectors();
+  updateDistributionSelectors();
 }
 
-function updateAssignmentSelectors() {
-  const groupSelect = document.getElementById("bulk-assignment-group");
-  groupSelect.replaceChildren(new Option("Выберите группу", ""));
-  data.groups.forEach((group) => {
-    groupSelect.add(new Option(group.name, String(group.id)));
-  });
+function updateDistributionSelectors() {
+  fillSelect(
+    document.getElementById("distribution-group"),
+    "Выберите группу",
+    groupOptions(),
+  );
 
-  ["directions-practice"].forEach((selectId) => {
-    const practiceSelect = document.getElementById(selectId);
-    practiceSelect.replaceChildren(new Option("Выберите практику", ""));
-    data.practices.forEach((practice) => {
-      const group = data.groups.find((item) => item.id === practice.group_id);
-      const groupName = group ? group.name : "";
-      practiceSelect.add(
-        new Option(
-          `${practice.type} — ${groupName} (${practice.start_date} – ${practice.end_date})`,
-          String(practice.id),
-        ),
-      );
-    });
-  });
+  updateDistributionPracticeSelect();
 
-  const practiceSelect = document.getElementById("bulk-assignment-practice");
-  practiceSelect.replaceChildren(new Option("Сначала выберите группу", ""));
-  practiceSelect.disabled = true;
-
-  const bulkDefaults = document.getElementById("bulk-defaults");
-  bulkDefaults.replaceChildren();
-  BULK_FIELDS.forEach((field) => {
-    bulkDefaults.append(createBulkControl(field, true));
-  });
+  fillSelect(
+    document.getElementById("distribution-bulk-organization"),
+    "Не менять",
+    organizationOptions(),
+  );
+  fillSelect(
+    document.getElementById("distribution-bulk-supervisor"),
+    "Не менять",
+    supervisorOptions(),
+  );
+  fillSelect(
+    document.getElementById("distribution-bulk-practice-form"),
+    "Не менять",
+    stringOptions(PRACTICE_FORM_OPTIONS),
+  );
+  fillSelect(
+    document.getElementById("distribution-bulk-payment-type"),
+    "Не менять",
+    stringOptions(PAYMENT_TYPE_OPTIONS),
+  );
 }
 
-function createBulkSelect(field, isDefault = false) {
+function updateDistributionPracticeSelect() {
+  const groupSelect = document.getElementById("distribution-group");
+  const groupId = groupSelect.value ? Number(groupSelect.value) : null;
+  const practices = groupId
+    ? data.practices.filter((practice) => practice.group_id === groupId)
+    : [];
+
+  fillSelect(
+    document.getElementById("distribution-practice"),
+    "Выберите практику",
+    practices.map((practice) => ({
+      label: `${practice.type} (${practice.start_date} – ${practice.end_date})`,
+      value: String(practice.id),
+    })),
+  );
+}
+
+function createSelectCell(name, placeholder, options, selectedValue) {
+  const cell = document.createElement("td");
   const select = document.createElement("select");
-  select.dataset.field = field.name;
-  select.setAttribute("aria-label", isDefault ? `${field.label} для всех` : field.label);
+  select.name = name;
+  select.classList.add("assignment-placeholder");
+  fillSelect(select, placeholder, options);
 
-  if (isDefault) {
-    select.add(new Option("Не менять", ""));
-    if (field.name === "supervisor_id") {
-      select.add(new Option("Без руководителя", NO_SUPERVISOR_VALUE));
-    }
-  } else {
-    select.add(new Option(field.placeholder, ""));
+  if (selectedValue) {
+    select.value = selectedValue;
   }
 
-  if (field.name === "organization_id") {
-    data.organizations.forEach((organization) => {
-      select.add(new Option(organization.name, String(organization.id)));
-    });
-  } else if (field.name === "supervisor_id") {
-    data.supervisors.forEach((supervisor) => {
-      select.add(new Option(supervisor.full_name, String(supervisor.id)));
-    });
-  } else {
-    field.options.forEach((value) => select.add(new Option(value, value)));
-  }
-
-  return select;
+  cell.append(select);
+  return cell;
 }
 
-function createBulkControl(field, isDefault = false, selectedValue = "") {
-  const wrapper = document.createElement("div");
-  wrapper.className = "bulk-control";
-  const select = createBulkSelect(field, isDefault);
-
-  if (field.name === "organization_id" && data.organizations.length > 15) {
-    const search = document.createElement("input");
-    search.type = "search";
-    search.placeholder = "Поиск организации";
-    search.setAttribute("aria-label", `Поиск: ${select.getAttribute("aria-label")}`);
-    search.autocomplete = "off";
-    search.addEventListener("input", () => {
-      const query = search.value.trim().toLocaleLowerCase("ru");
-      const selected = select.value;
-      const emptyLabel = isDefault ? "Не менять" : field.placeholder;
-      select.replaceChildren(new Option(emptyLabel, ""));
-      data.organizations
-        .filter((organization) =>
-          String(organization.id) === selected ||
-          organization.name.toLocaleLowerCase("ru").includes(query),
-        )
-        .forEach((organization) =>
-          select.add(new Option(organization.name, String(organization.id))),
-        );
-      select.value = selected;
-    });
-    wrapper.append(search);
-  }
-
-  select.value = selectedValue == null ? "" : String(selectedValue);
-  wrapper.append(select);
-  return wrapper;
-}
-
-function updateBulkCount() {
-  const rows = Array.from(document.querySelectorAll("#bulk-assignment-rows tr[data-student-id]"));
-  let completed = 0;
-  rows.forEach((row) => {
-    const values = Object.fromEntries(
-      Array.from(row.querySelectorAll("select")).map((select) => [select.dataset.field, select.value]),
-    );
-    const isComplete = Boolean(values.organization_id && values.practice_form && values.payment_type);
-    const indicator = row.querySelector(".bulk-student-status");
-    indicator.classList.toggle("is-complete", isComplete);
-    indicator.setAttribute("aria-label", isComplete ? "Распределение заполнено" : "Распределение не заполнено");
-    indicator.title = isComplete ? "Распределение заполнено" : "Распределение не заполнено";
-    if (isComplete) completed += 1;
-  });
-  document.getElementById("bulk-assignment-count").textContent = `Заполнено ${completed} из ${rows.length}`;
-}
-
-function renderBulkStudents(students, assignments) {
-  const assignmentByStudent = new Map(assignments.map((assignment) => [assignment.student_id, assignment]));
-  const tbody = document.getElementById("bulk-assignment-rows");
-  tbody.replaceChildren();
-
-  students.forEach((student) => {
-    const assignment = assignmentByStudent.get(student.id);
+function renderDistributionTable(students, assignmentsByStudent) {
+  const rows = students.map((student) => {
+    const assignment = assignmentsByStudent.get(student.id);
     const row = document.createElement("tr");
     row.dataset.studentId = String(student.id);
-    const studentCell = document.createElement("th");
-    studentCell.scope = "row";
-    const indicator = document.createElement("span");
-    indicator.className = "bulk-student-status";
-    indicator.setAttribute("aria-label", "Распределение не заполнено");
-    indicator.title = "Распределение не заполнено";
-    studentCell.append(indicator, document.createTextNode(student.full_name));
-    row.append(studentCell);
 
-    BULK_FIELDS.forEach((field) => {
-      const cell = document.createElement("td");
-      const value = assignment ? assignment[field.name] : "";
-      const control = createBulkControl(field, false, value);
-      const select = control.querySelector("select");
-      select.addEventListener("change", () => {
-        row.classList.remove("has-error");
-        const error = row.nextElementSibling?.classList.contains("bulk-row-error-row")
-          ? row.nextElementSibling
-          : null;
-        if (error) error.remove();
-        updateBulkCount();
-      });
-      cell.append(control);
-      row.append(cell);
-    });
+    const nameCell = document.createElement("th");
+    nameCell.scope = "row";
+    nameCell.textContent = student.full_name;
+    row.append(nameCell);
 
-    tbody.append(row);
+    row.append(
+      createSelectCell(
+        "organization_id",
+        "Выберите организацию",
+        organizationOptions(),
+        assignment ? String(assignment.organization_id) : "",
+      ),
+    );
+    row.append(
+      createSelectCell(
+        "supervisor_id",
+        "Без руководителя",
+        supervisorOptions(),
+        assignment?.supervisor_id ? String(assignment.supervisor_id) : "",
+      ),
+    );
+    row.append(
+      createSelectCell(
+        "practice_form",
+        "Выберите форму",
+        stringOptions(PRACTICE_FORM_OPTIONS),
+        assignment?.practice_form || "",
+      ),
+    );
+    row.append(
+      createSelectCell(
+        "payment_type",
+        "Выберите оплату",
+        stringOptions(PAYMENT_TYPE_OPTIONS),
+        assignment?.payment_type || "",
+      ),
+    );
+
+    const gradeCell = document.createElement("td");
+    const gradeInput = document.createElement("input");
+    gradeInput.name = "grade";
+    gradeInput.value = assignment?.grade || "";
+    gradeCell.append(gradeInput);
+    row.append(gradeCell);
+
+    return row;
   });
 
-  document.getElementById("bulk-assignment-content").hidden = false;
-  updateBulkCount();
+  document.getElementById("distribution-body").replaceChildren(...rows);
 }
 
-async function loadBulkStudents() {
-  const groupId = document.getElementById("bulk-assignment-group").value;
-  const practiceId = document.getElementById("bulk-assignment-practice").value;
-  const sequence = ++bulkLoadSequence;
-  const content = document.getElementById("bulk-assignment-content");
-  content.hidden = true;
-  document.getElementById("bulk-assignment-rows").replaceChildren();
-  showMessage("bulk-assignment-message", "", false);
-
-  if (!groupId || !practiceId) return;
-
-  showMessage("bulk-assignment-message", "Загружаем студентов и сохранённые распределения…", false);
-  try {
-    const [students, assignments] = await Promise.all([
-      api(`/students?group_id=${encodeURIComponent(groupId)}`),
-      api(`/assignments/practice/${encodeURIComponent(practiceId)}`),
-    ]);
-    if (sequence !== bulkLoadSequence) return;
-    renderBulkStudents(students, assignments);
-    showMessage("bulk-assignment-message", "", false);
-    if (students.length === 0) {
-      showMessage("bulk-assignment-message", "В выбранной группе пока нет студентов.", false);
-    }
-  } catch (error) {
-    if (sequence !== bulkLoadSequence) return;
-    const detail = error instanceof TypeError
-      ? "Не удалось связаться с сервером. Проверьте подключение и попробуйте ещё раз."
-      : `Не удалось загрузить студентов или распределения: ${error.message}`;
-    showMessage("bulk-assignment-message", detail, true);
-  }
-}
-
-function applyBulkDefaults() {
-  const defaults = Object.fromEntries(
-    Array.from(document.querySelectorAll("#bulk-defaults select")).map((select) => [select.dataset.field, select.value]),
-  );
-  document.querySelectorAll("#bulk-assignment-rows tr[data-student-id]").forEach((row) => {
-    Object.entries(defaults).forEach(([field, value]) => {
-      if (value === "") return;
-      const select = row.querySelector(`select[data-field="${field}"]`);
-      select.value = value === NO_SUPERVISOR_VALUE ? "" : value;
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-  });
-}
-
-function resetBulkRows() {
-  document.querySelectorAll("#bulk-assignment-rows select").forEach((select) => {
-    select.value = "";
-  });
-  document.querySelectorAll("#bulk-assignment-rows tr").forEach((row) => {
-    row.classList.remove("has-error");
-    if (row.nextElementSibling?.classList.contains("bulk-row-error-row")) {
-      row.nextElementSibling.remove();
-    }
-  });
-  updateBulkCount();
-  showMessage("bulk-assignment-message", "", false);
-}
-
-async function saveBulkAssignments() {
-  const practiceId = Number(document.getElementById("bulk-assignment-practice").value);
-  const rows = Array.from(document.querySelectorAll("#bulk-assignment-rows tr[data-student-id]"));
-  const completeRows = rows.filter((row) => {
-    const values = Object.fromEntries(Array.from(row.querySelectorAll("select")).map((select) => [select.dataset.field, select.value]));
-    return values.organization_id && values.practice_form && values.payment_type;
-  });
-
-  if (!completeRows.length) {
-    showMessage("bulk-assignment-message", "Нет заполненных строк для сохранения.", true);
-    return;
-  }
-
-  const button = document.getElementById("bulk-save");
-  button.disabled = true;
-  const originalText = button.textContent;
-  button.textContent = "Сохранение…";
-  showMessage("bulk-assignment-message", "", false);
-  rows.forEach((row) => {
-    row.classList.remove("has-error");
-    if (row.nextElementSibling?.classList.contains("bulk-row-error-row")) {
-      row.nextElementSibling.remove();
-    }
-  });
-
-  let saved = 0;
-  const errors = [];
-  for (const row of completeRows) {
-    const values = Object.fromEntries(Array.from(row.querySelectorAll("select")).map((select) => [select.dataset.field, select.value]));
-    const studentName = row.querySelector("th").textContent.trim();
-    try {
-      await api("/assignments/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student_id: Number(row.dataset.studentId),
-          practice_id: practiceId,
-          organization_id: Number(values.organization_id),
-          supervisor_id: values.supervisor_id ? Number(values.supervisor_id) : null,
-          practice_form: values.practice_form,
-          payment_type: values.payment_type,
-        }),
-      });
-      saved += 1;
-    } catch (error) {
-      const reason = error instanceof TypeError
-        ? "Не удалось связаться с сервером."
-        : error.message;
-      row.classList.add("has-error");
-      const errorRow = document.createElement("tr");
-      errorRow.className = "bulk-row-error-row";
-      const errorCell = document.createElement("td");
-      errorCell.colSpan = BULK_FIELDS.length + 1;
-      errorCell.className = "bulk-row-error";
-      errorCell.textContent = `Не сохранено: ${reason}`;
-      errorRow.append(errorCell);
-      row.after(errorRow);
-      errors.push(`${studentName}: ${reason}`);
-    }
-  }
-
-  const message = `Сохранено: ${saved} из ${completeRows.length}${errors.length ? `. Не сохранены ${errors.length} строк — причины указаны в таблице.` : "."}`;
-  showMessage("bulk-assignment-message", message, errors.length > 0);
-  button.disabled = false;
-  button.textContent = originalText;
-}
-
-async function submitImport(form, endpoint, messageId) {
+async function submitImport(form, endpoint, messageId, resultLabel = "Создано") {
   let result;
 
   try {
@@ -378,7 +246,7 @@ async function submitImport(form, endpoint, messageId) {
 
   showMessage(
     messageId,
-    `Создано: ${result.created}, пропущено: ${result.skipped}`,
+    `${resultLabel}: ${result.created}, пропущено: ${result.skipped}`,
     false,
   );
 
@@ -394,13 +262,12 @@ async function submitImport(form, endpoint, messageId) {
 }
 
 async function refreshData() {
-  const [groups, organizations, supervisors, practices] =
-    await Promise.all([
-      api("/groups"),
-      api("/organizations"),
-      api("/supervisors"),
-      api("/practices"),
-    ]);
+  const [groups, organizations, supervisors, practices] = await Promise.all([
+    api("/groups"),
+    api("/organizations"),
+    api("/supervisors"),
+    api("/practices"),
+  ]);
 
   Object.assign(data, {
     groups,
@@ -415,11 +282,6 @@ async function refreshData() {
 
 async function submitPracticeForm(form, endpoint, messageId, successMessage) {
   const payload = Object.fromEntries(new FormData(form));
-  if (payload.supervisor_id === "") {
-    delete payload.supervisor_id;
-  } else if (payload.supervisor_id !== undefined) {
-    payload.supervisor_id = Number(payload.supervisor_id);
-  }
 
   try {
     await api(endpoint, {
@@ -444,6 +306,178 @@ async function submitPracticeForm(form, endpoint, messageId, successMessage) {
       true,
     );
   }
+}
+
+async function refreshDistribution() {
+  const groupId = document.getElementById("distribution-group").value;
+  const practiceId = document.getElementById("distribution-practice").value;
+  const form = document.getElementById("distribution-form");
+  const bulk = document.getElementById("distribution-bulk");
+
+  if (!groupId) {
+    document.getElementById("distribution-body").replaceChildren();
+    form.hidden = true;
+    bulk.hidden = true;
+    showMessage("distribution-message", "", false);
+    return;
+  }
+
+  const students = await api(
+    `/students?group_id=${encodeURIComponent(groupId)}`,
+  );
+  const assignments = practiceId
+    ? await api(`/assignments/practice/${encodeURIComponent(practiceId)}`)
+    : [];
+  const assignmentsByStudent = new Map(
+    assignments.map((assignment) => [assignment.student_id, assignment]),
+  );
+
+  renderDistributionTable(students, assignmentsByStudent);
+  form.hidden = students.length === 0;
+  bulk.hidden = students.length === 0;
+
+  if (students.length === 0) {
+    showMessage(
+      "distribution-message",
+      "В выбранной группе нет студентов.",
+      true,
+    );
+  } else if (!practiceId) {
+    showMessage(
+      "distribution-message",
+      "Выберите практику, чтобы увидеть сохранённые назначения.",
+      false,
+    );
+  } else {
+    showMessage("distribution-message", "", false);
+  }
+}
+
+function refreshDistributionSafely() {
+  refreshDistribution().catch((error) => {
+    showMessage("distribution-message", error.message, true);
+  });
+}
+
+function applyBulkToAllRows() {
+  const bulkValues = {
+    organization_id: document.getElementById("distribution-bulk-organization")
+      .value,
+    supervisor_id: document.getElementById("distribution-bulk-supervisor")
+      .value,
+    practice_form: document.getElementById("distribution-bulk-practice-form")
+      .value,
+    payment_type: document.getElementById("distribution-bulk-payment-type")
+      .value,
+  };
+
+  document.querySelectorAll("#distribution-body tr").forEach((row) => {
+    Object.entries(bulkValues).forEach(([field, value]) => {
+      if (!value) {
+        return;
+      }
+
+      const select = row.querySelector(`[name="${field}"]`);
+      if (select) {
+        select.value = value;
+      }
+    });
+  });
+}
+
+function distributionRowPayload(row, practiceId) {
+  const readValue = (field) => {
+    const element = row.querySelector(`[name="${field}"]`);
+    return element ? element.value.trim() : "";
+  };
+
+  const organizationId = readValue("organization_id");
+  if (!organizationId) {
+    return null;
+  }
+
+  const payload = {
+    student_id: Number(row.dataset.studentId),
+    practice_id: Number(practiceId),
+    organization_id: Number(organizationId),
+  };
+
+  const supervisorId = readValue("supervisor_id");
+  if (supervisorId) {
+    payload.supervisor_id = Number(supervisorId);
+  }
+
+  ["practice_form", "payment_type", "grade"].forEach((field) => {
+    const value = readValue(field);
+    if (value) {
+      payload[field] = value;
+    }
+  });
+
+  return payload;
+}
+
+async function submitDistribution(form) {
+  const practiceId = document.getElementById("distribution-practice").value;
+  if (!practiceId) {
+    showMessage("distribution-message", "Сначала выберите практику.", true);
+    return;
+  }
+
+  const rows = Array.from(document.querySelectorAll("#distribution-body tr"));
+  const payloads = rows
+    .map((row) => distributionRowPayload(row, practiceId))
+    .filter((payload) => payload !== null);
+
+  if (payloads.length === 0) {
+    showMessage(
+      "distribution-message",
+      "Укажите организацию хотя бы для одного студента.",
+      true,
+    );
+    return;
+  }
+
+  const button = form.querySelector("button[type='submit']");
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Сохранение...";
+  showMessage("distribution-message", "", false);
+
+  const results = await Promise.allSettled(
+    payloads.map((payload) =>
+      api("/assignments/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    ),
+  );
+
+  button.disabled = false;
+  button.textContent = originalText;
+
+  const savedCount = results.filter(
+    (result) => result.status === "fulfilled",
+  ).length;
+  const failed = results.filter((result) => result.status === "rejected");
+  const skippedCount = rows.length - payloads.length;
+
+  if (failed.length === 0) {
+    const skippedNote = skippedCount ? `, без организации: ${skippedCount}` : "";
+    showMessage(
+      "distribution-message",
+      `Сохранено: ${savedCount}${skippedNote}`,
+      false,
+    );
+    return;
+  }
+
+  showMessage(
+    "distribution-message",
+    `Сохранено: ${savedCount}, ошибок: ${failed.length}. ${failed[0].reason.message}`,
+    true,
+  );
 }
 
 function documentFilename(contentDisposition, fallback) {
@@ -563,6 +597,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
   document
+    .getElementById("gradesheets-import-form")
+    .addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitImport(
+        event.currentTarget,
+        "/import/gradesheets",
+        "gradesheets-import-message",
+        "Обновлено оценок",
+      );
+    });
+
+  document
     .getElementById("supervisor-form")
     .addEventListener("submit", (event) => {
       event.preventDefault();
@@ -586,33 +632,27 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     });
 
-  const bulkGroupSelect = document.getElementById("bulk-assignment-group");
-  const bulkPracticeSelect = document.getElementById("bulk-assignment-practice");
-  bulkGroupSelect.addEventListener("change", () => {
-    const groupId = bulkGroupSelect.value;
-    bulkPracticeSelect.replaceChildren(
-      new Option(groupId ? "Выберите практику" : "Сначала выберите группу", ""),
-    );
-    data.practices
-      .filter((practice) => String(practice.group_id) === groupId)
-      .forEach((practice) => {
-        bulkPracticeSelect.add(
-          new Option(
-            `${practice.type} (${practice.start_date} – ${practice.end_date})`,
-            String(practice.id),
-          ),
-        );
-      });
-    bulkPracticeSelect.disabled = !groupId;
-    if (groupId && bulkPracticeSelect.options.length === 1) {
-      bulkPracticeSelect.options[0].text = "Для группы нет практик";
-    }
-    loadBulkStudents();
-  });
-  bulkPracticeSelect.addEventListener("change", loadBulkStudents);
-  document.getElementById("bulk-apply-all").addEventListener("click", applyBulkDefaults);
-  document.getElementById("bulk-reset").addEventListener("click", resetBulkRows);
-  document.getElementById("bulk-save").addEventListener("click", saveBulkAssignments);
+  document
+    .getElementById("distribution-group")
+    .addEventListener("change", () => {
+      updateDistributionPracticeSelect();
+      refreshDistributionSafely();
+    });
+
+  document
+    .getElementById("distribution-practice")
+    .addEventListener("change", refreshDistributionSafely);
+
+  document
+    .getElementById("distribution-bulk-apply")
+    .addEventListener("click", applyBulkToAllRows);
+
+  document
+    .getElementById("distribution-form")
+    .addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitDistribution(event.currentTarget);
+    });
 
   [
     {
