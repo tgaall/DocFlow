@@ -218,13 +218,6 @@ function renderDistributionTable(students, assignmentsByStudent) {
       ),
     );
 
-    const gradeCell = document.createElement("td");
-    const gradeInput = document.createElement("input");
-    gradeInput.name = "grade";
-    gradeInput.value = assignment?.grade || "";
-    gradeCell.append(gradeInput);
-    row.append(gradeCell);
-
     return row;
   });
 
@@ -407,7 +400,7 @@ function distributionRowPayload(row, practiceId) {
     payload.supervisor_id = Number(supervisorId);
   }
 
-  ["practice_form", "payment_type", "grade"].forEach((field) => {
+  ["practice_form", "payment_type"].forEach((field) => {
     const value = readValue(field);
     if (value) {
       payload[field] = value;
