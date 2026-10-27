@@ -9,7 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <link rel="stylesheet" href="/app/style.css" />
-    <script src="/app/app.js?v=4" defer></script>
+    <script src="/app/app.js?v=5" defer></script>
   </head>
   <body>
     <!-- data-theme="light" pins Pico's light theme so its
@@ -164,38 +164,80 @@
         <h2>Распределение студентов</h2>
 
         <article>
-          <h3>Индивидуальное распределение</h3>
-          <div class="bulk-assignment-filters">
-            <div>
-              <label for="bulk-assignment-group">Группа</label>
-              <select id="bulk-assignment-group">
-                <option value="">Выберите группу</option>
-              </select>
-            </div>
-            <div>
-              <label for="bulk-assignment-practice">Практика</label>
-              <select id="bulk-assignment-practice" disabled>
-                <option value="">Сначала выберите группу</option>
-              </select>
-            </div>
+          <h3>Распределение студентов</h3>
+          <p>
+            Выберите группу и практику — появится таблица студентов. Организацию
+            можно задать сразу всем строкам, а затем поправить отдельным студентам.
+          </p>
+
+          <div class="distribution-context">
+            <label for="distribution-group">Группа</label>
+            <select id="distribution-group" name="group_id">
+              <option value="">Выберите группу</option>
+            </select>
+
+            <label for="distribution-practice">Практика</label>
+            <select id="distribution-practice" name="practice_id">
+              <option value="">Выберите практику</option>
+            </select>
           </div>
 
-          <div id="bulk-assignment-content" hidden>
-            <div class="bulk-assignment-toolbar">
-              <strong>Для всех</strong>
-              <div id="bulk-defaults" class="bulk-assignment-defaults"></div>
-              <div class="bulk-assignment-actions">
-                <button id="bulk-apply-all" type="button" class="secondary">
-                  Применить ко всем
-                </button>
-                <button id="bulk-reset" type="button" class="secondary outline">
-                  Сбросить
-                </button>
-              </div>
+          <div id="distribution-bulk" class="distribution-bulk" hidden>
+            <h4>Заполнить все строки</h4>
+            <div class="distribution-bulk-grid">
+              <label for="distribution-bulk-organization">
+                Организация
+                <select
+                  id="distribution-bulk-organization"
+                  class="assignment-placeholder"
+                >
+                  <option value="">Не менять</option>
+                </select>
+              </label>
+
+              <label for="distribution-bulk-supervisor">
+                Руководитель
+                <select
+                  id="distribution-bulk-supervisor"
+                  class="assignment-placeholder"
+                >
+                  <option value="">Не менять</option>
+                </select>
+              </label>
+
+              <label for="distribution-bulk-practice-form">
+                Форма практики
+                <select
+                  id="distribution-bulk-practice-form"
+                  class="assignment-placeholder"
+                >
+                  <option value="">Не менять</option>
+                  <option value="Очно">Очно</option>
+                  <option value="Дистанционно">Дистанционно</option>
+                </select>
+              </label>
+
+              <label for="distribution-bulk-payment-type">
+                Тип оплаты
+                <select
+                  id="distribution-bulk-payment-type"
+                  class="assignment-placeholder"
+                >
+                  <option value="">Не менять</option>
+                  <option value="С оплатой">С оплатой</option>
+                  <option value="Без оплаты">Без оплаты</option>
+                </select>
+              </label>
             </div>
 
-            <div class="bulk-table-scroll">
-              <table class="bulk-assignment-table">
+            <button type="button" id="distribution-bulk-apply">
+              Применить ко всем строкам
+            </button>
+          </div>
+
+          <form id="distribution-form" hidden>
+            <div class="distribution-table-wrapper">
+              <table id="distribution-table">
                 <thead>
                   <tr>
                     <th scope="col">Студент</th>
@@ -203,20 +245,18 @@
                     <th scope="col">Руководитель</th>
                     <th scope="col">Форма практики</th>
                     <th scope="col">Тип оплаты</th>
+                    <th scope="col">Оценка</th>
                   </tr>
                 </thead>
-                <tbody id="bulk-assignment-rows"></tbody>
+                <tbody id="distribution-body"></tbody>
               </table>
             </div>
 
-            <div class="bulk-assignment-footer">
-              <span id="bulk-assignment-count" aria-live="polite">Заполнено 0 из 0</span>
-              <button id="bulk-save" type="button">Сохранить распределение</button>
-            </div>
-          </div>
-          <p id="bulk-assignment-message" role="status" hidden></p>
-        </article>
+            <button type="submit">Сохранить распределение</button>
+          </form>
 
+          <p id="distribution-message" role="status" hidden></p>
+        </article>
       </section>
 
       <section id="documents">
