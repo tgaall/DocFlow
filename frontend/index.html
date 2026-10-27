@@ -82,6 +82,23 @@
           </form>
           <p id="organizations-import-message" role="status" hidden></p>
         </article>
+
+        <article>
+          <h3>Ведомость с оценками</h3>
+          <p>Загрузите PDF ведомости, чтобы обновить оценки студентов группы.</p>
+          <form id="gradesheets-import-form">
+            <label for="gradesheets-file">Файл ведомости (.pdf)</label>
+            <input
+              id="gradesheets-file"
+              name="file"
+              type="file"
+              accept=".pdf,application/pdf"
+              required
+            />
+            <button type="submit">Импортировать ведомость</button>
+          </form>
+          <p id="gradesheets-import-message" role="status" hidden></p>
+        </article>
       </section>
 
       <section id="practice">
@@ -136,11 +153,6 @@
               type="date"
               required
             />
-
-            <label for="practice-supervisor">Руководитель (необязательно)</label>
-            <select id="practice-supervisor" name="supervisor_id">
-              <option value="">Без руководителя</option>
-            </select>
 
             <button type="submit">Создать практику</button>
           </form>

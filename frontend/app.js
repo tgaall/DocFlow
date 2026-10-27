@@ -70,14 +70,6 @@ function updatePracticeSelectors() {
     });
   });
 
-  const supervisorSelect = document.getElementById("practice-supervisor");
-  supervisorSelect.replaceChildren(new Option("Без руководителя", ""));
-  data.supervisors.forEach((supervisor) => {
-    supervisorSelect.add(
-      new Option(supervisor.full_name, String(supervisor.id)),
-    );
-  });
-
   updateAssignmentSelectors();
 }
 
@@ -363,7 +355,7 @@ async function saveBulkAssignments() {
   button.textContent = originalText;
 }
 
-async function submitImport(form, endpoint, messageId) {
+async function submitImport(form, endpoint, messageId, resultLabel = "Создано") {
   let result;
 
   try {
@@ -378,7 +370,7 @@ async function submitImport(form, endpoint, messageId) {
 
   showMessage(
     messageId,
-    `Создано: ${result.created}, пропущено: ${result.skipped}`,
+    `${resultLabel}: ${result.created}, пропущено: ${result.skipped}`,
     false,
   );
 
@@ -415,11 +407,6 @@ async function refreshData() {
 
 async function submitPracticeForm(form, endpoint, messageId, successMessage) {
   const payload = Object.fromEntries(new FormData(form));
-  if (payload.supervisor_id === "") {
-    delete payload.supervisor_id;
-  } else if (payload.supervisor_id !== undefined) {
-    payload.supervisor_id = Number(payload.supervisor_id);
-  }
 
   try {
     await api(endpoint, {
@@ -559,6 +546,18 @@ document.addEventListener("DOMContentLoaded", () => {
         event.currentTarget,
         "/import/organizations",
         "organizations-import-message",
+      );
+    });
+
+  document
+    .getElementById("gradesheets-import-form")
+    .addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitImport(
+        event.currentTarget,
+        "/import/gradesheets",
+        "gradesheets-import-message",
+        "Обновлено оценок",
       );
     });
 
