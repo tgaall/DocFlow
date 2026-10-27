@@ -73,16 +73,16 @@ async def import_organizations_endpoint(
     "/gradesheets",
     response_model=ImportResult,
     status_code=status.HTTP_200_OK,
-    summary="Импорт оценок из ведомости DOCX",
+    summary="Импорт оценок из ведомости PDF",
 )
 async def import_gradesheet_endpoint(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_async_session),
 ) -> ImportResult:
-    if not file.filename or not file.filename.lower().endswith(".docx"):
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Ожидается .docx файл",
+            detail="Ожидается .pdf файл",
         )
 
     try:

@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 import pandas as pd
-from docx import Document
+from pypdf import PdfReader
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,65 +92,63 @@ def _read_excel(file_bytes: bytes) -> list[tuple[int, str, str, int]]:
 
 
 def parse_statement(source: str | Path | BinaryIO) -> list[dict[str, str | int]]:
-    """Parse a gradesheet DOCX into group, student name, and numeric grade records."""
+    """Parse a text-based PDF gradesheet into student records."""
     grade_values = {
         "отлично": 5,
         "хорошо": 4,
         "удовлетворительно": 3,
         "неявка": 2,
     }
-    document = Document(source)
-    text_parts = [paragraph.text for paragraph in document.paragraphs]
-    text_parts.extend(
-        cell.text for table in document.tables for row in table.rows for cell in row.cells
-    )
-    group_match = STATEMENT_GROUP_PATTERN.search(" ".join(text_parts))
+    reader = PdfReader(source)
+    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+
+    group_match = STATEMENT_GROUP_PATTERN.search(text)
     if group_match is None:
         raise ValueError("Не удалось определить группу в ведомости")
     group = group_match.group(0)
 
     students: list[dict[str, str | int]] = []
-    for table in document.tables:
-        name_column: int | None = None
-        grade_column: int | None = None
+    fragments = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    record_number_pattern = re.compile(r"^\d{5,}$")
+    student_number_pattern = re.compile(r"^\d{1,3}$")
+    index = 0
+    while index < len(fragments):
+        if not student_number_pattern.fullmatch(fragments[index]):
+            index += 1
+            continue
 
-        for row_index, row in enumerate(table.rows):
-            headers = [
-                re.sub(r"\s+", " ", cell.text).strip().lower()
-                for cell in row.cells
-            ]
-            for column_index, header in enumerate(headers):
-                if "фамилия" in header and "имя" in header:
-                    name_column = column_index
-                if "оценка" in header:
-                    grade_column = column_index
+        full_name_parts: list[str] = []
+        index += 1
+        while index < len(fragments) and not record_number_pattern.fullmatch(
+            fragments[index]
+        ):
+            full_name_parts.append(fragments[index])
+            index += 1
 
-            if name_column is None or grade_column is None:
-                continue
-
-            for student_row in table.rows[row_index + 1 :]:
-                if len(student_row.cells) <= max(name_column, grade_column):
-                    continue
-                full_name = re.sub(
-                    r"\s+", " ", student_row.cells[name_column].text
-                ).strip()
-                grade_text = re.sub(
-                    r"\s+", " ", student_row.cells[grade_column].text
-                ).strip().lower()
-                if not full_name or len(full_name.split()) > 4 or not grade_text:
-                    continue
-                grade = grade_values.get(grade_text)
-                if grade is None:
-                    raise ValueError(
-                        f"Неизвестная оценка {grade_text!r} для студента {full_name!r}"
-                    )
-                students.append(
-                    {"group": group, "full_name": full_name, "grade": grade}
-                )
+        if index >= len(fragments):
             break
 
+        full_name = " ".join(full_name_parts).strip()
+        index += 1  # Skip the student's record book number.
+        while index < len(fragments) and not fragments[index]:
+            index += 1
+        if index >= len(fragments):
+            break
+
+        grade_text = fragments[index].lower()
+        grade = grade_values.get(grade_text)
+        if not full_name or not 2 <= len(full_name.split()) <= 4:
+            index += 1
+            continue
+        if grade is None:
+            raise ValueError(
+                f"Неизвестная оценка {grade_text!r} для студента {full_name!r}"
+            )
+        students.append({"group": group, "full_name": full_name, "grade": grade})
+        index += 1
+
     if not students:
-        raise ValueError("В ведомости не найдены студенты с оценками")
+        raise ValueError("В PDF-ведомости не найдены студенты с оценками")
     return students
 
 
