@@ -4,7 +4,15 @@ from sqlalchemy import case, func, select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.domain import Assignment, Group, GroupReport, Practice, Student
+from src.models.domain import (
+    Assignment,
+    Group,
+    GroupReport,
+    Organization,
+    Practice,
+    Student,
+    Supervisor,
+)
 
 
 class ReportRepository:
@@ -31,6 +39,14 @@ class ReportRepository:
                 Practice.start_date,
                 Practice.end_date,
                 func.count(func.distinct(Student.id)).label("total_students"),
+                *[
+                    func.count(
+                        func.distinct(
+                            case((Student.grade == grade, Student.id), else_=None)
+                        )
+                    ).label(f"count{grade}")
+                    for grade in (5, 4, 3, 2)
+                ],
                 func.count(
                     func.distinct(
                         case(
@@ -82,11 +98,76 @@ class ReportRepository:
                         row.end_date.strftime("%d.%m.%Y") if row.end_date else ""
                     ),
                     "count_stud": row.total_students or 0,
+                    "count5": row.count5 or 0,
+                    "count4": row.count4 or 0,
+                    "count3": row.count3 or 0,
+                    "count2": row.count2 or 0,
                     "payed_students": row.payed_students_count or 0,
                 }
             )
 
         return report_data
+
+    async def get_companies_report_data(
+        self, practice_ids: list[int] | None = None
+    ) -> list[dict[str, str | int]]:
+        """Return organizations, student counts, and workplace supervisors."""
+        stmt = (
+            select(
+                Organization.id,
+                Organization.name,
+                Student.id,
+                Supervisor.full_name,
+            )
+            .join(Assignment, Assignment.organization_id == Organization.id)
+            .join(Student, Student.id == Assignment.student_id)
+            .join(Practice, Practice.id == Assignment.practice_id)
+            .outerjoin(Supervisor, Supervisor.id == Assignment.supervisor_id)
+        )
+        if practice_ids:
+            stmt = stmt.where(Practice.id.in_(practice_ids))
+
+        result = await self.session.execute(stmt)
+        companies: dict[int, tuple[str, set[int], set[str]]] = {}
+        for (
+            organization_id,
+            organization_name,
+            student_id,
+            supervisor_name,
+        ) in result.all():
+            company = companies.get(organization_id)
+            if company is None:
+                company = (organization_name, set(), set())
+                companies[organization_id] = company
+            company[1].add(student_id)
+            if supervisor_name:
+                company[2].add(supervisor_name)
+
+        return [
+            {
+                "name": name,
+                "count": len(student_ids),
+                "supervisors": ", ".join(sorted(supervisors)),
+            }
+            for name, student_ids, supervisors in sorted(
+                companies.values(), key=lambda company: company[0]
+            )
+        ]
+
+    async def get_department_supervisors(
+        self, practice_ids: list[int] | None = None
+    ) -> str:
+        """Return unique faculty practice supervisors as a display string."""
+        stmt = (
+            select(Supervisor.full_name)
+            .join(Practice, Practice.supervisor_id == Supervisor.id)
+            .distinct()
+        )
+        if practice_ids:
+            stmt = stmt.where(Practice.id.in_(practice_ids))
+
+        result = await self.session.execute(stmt)
+        return ", ".join(sorted(result.scalars().all()))
 
     async def create_group_report(
         self,

@@ -51,7 +51,11 @@ def render_order(rows: list[dict[str, str]]) -> bytes:
     return buffer.getvalue()
 
 
-def render_report(groups_data: list[dict]) -> bytes:
+def render_report(
+    groups_data: list[dict],
+    companies_data: list[dict] | None = None,
+    supervissors: str = "",
+) -> bytes:
     """
     Сгенерировать отчет по шаблону Report_template.docx
 
@@ -62,11 +66,22 @@ def render_report(groups_data: list[dict]) -> bytes:
             - start_date: дата начала практики
             - end_date: дата окончания практики
             - count_stud: количество студентов
+            - count5: количество оценок «отлично»
+            - count4: количество оценок «хорошо»
+            - count3: количество оценок «удовлетворительно»
+            - count2: количество студентов, не защитивших отчет в срок
             - payed_students: количество оплачиваемых студентов
-        practice_type: тип практики
+        companies_data: организации, руководители от базы практики и число студентов
+        supervissors: руководители практики от кафедры (название ключа в DOCX)
     """
     doc = DocxTemplate(str(REPORT_TEMPLATE))
-    doc.render({"groups": groups_data})  # TODO: добавить тип практики
+    doc.render(
+        {
+            "groups": groups_data,
+            "companies": companies_data or [],
+            "supervissors": supervissors,
+        }
+    )
 
     buffer = BytesIO()
     doc.save(buffer)

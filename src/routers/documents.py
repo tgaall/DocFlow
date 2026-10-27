@@ -108,7 +108,8 @@ async def download_report(
     practice_ids: Annotated[list[int] | None, Query()] = None,
     session: AsyncSession = Depends(get_async_session),
 ) -> Response:
-    groups_data = await ReportRepository(session).get_groups_report_data(
+    report_repository = ReportRepository(session)
+    groups_data = await report_repository.get_groups_report_data(
         practice_ids=practice_ids
     )
     if not groups_data:
@@ -117,8 +118,15 @@ async def download_report(
             detail="Нет данных для отчета",
         )
 
+    companies_data = await report_repository.get_companies_report_data(
+        practice_ids=practice_ids
+    )
+    supervissors = await report_repository.get_department_supervisors(
+        practice_ids=practice_ids
+    )
+
     return Response(
-        content=render_report(groups_data),
+        content=render_report(groups_data, companies_data, supervissors),
         media_type=DOCX_MEDIA_TYPE,
         headers={"Content-Disposition": 'attachment; filename="report.docx"'},
     )
