@@ -6,10 +6,10 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.db.base import DATABASE_URL
+from src.db.base import get_database_url
 
 engine = create_async_engine(
-    DATABASE_URL,
+    get_database_url(),
     echo=False,
 )
 
