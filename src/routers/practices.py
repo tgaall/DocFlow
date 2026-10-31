@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
+from src.auth.sessionbased import get_current_user
+from src.models.auth import User
 from src.repositories.practices import PracticeRepository, SupervisorRepository
 from src.schemas.imports import (
     PracticeCreate,
@@ -20,8 +22,11 @@ practice_list_router = APIRouter(prefix="/practices", tags=["Practices"])
 )
 async def get_practices(
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> list[PracticeListRead]:
-    return await PracticeRepository(session).get_practices()
+    return await PracticeRepository(
+        session, user_id=user.user_id
+    ).get_practices()
 
 
 @router.post(
@@ -33,9 +38,11 @@ async def get_practices(
 async def create_practice(
     practice_data: PracticeCreate,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> PracticeRead:
 
-    repo = PracticeRepository(session)
+    user_id = user.user_id
+    repo = PracticeRepository(session, user_id=user_id)
     if not await repo.group_exists(practice_data.group):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -51,6 +58,9 @@ async def create_practice(
             supervisor_id=practice_data.supervisor_id,
         )
         await session.commit()
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception:
         await session.rollback()
         raise
@@ -72,9 +82,13 @@ async def create_practice(
     summary="Создать руководителя практики",
 )
 async def create_supervisor(
-    sup_data: SupervisorCreate, session: AsyncSession = Depends(get_async_session)
+    sup_data: SupervisorCreate,
+    session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> SupervisorRead:
-    repo = SupervisorRepository(session)
+    repo = SupervisorRepository(
+        session, user_id=user.user_id
+    )
     try:
         sup = await repo.create_supervisor(
             full_name=sup_data.full_name, position=sup_data.position

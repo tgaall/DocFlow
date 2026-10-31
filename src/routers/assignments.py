@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
+from src.auth.sessionbased import get_current_user
+from src.models.auth import User
 from src.repositories.assignments import AssignmentRepository
 from src.schemas.assignments import (
     AssignmentCreate,
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/assignments", tags=["assignments"])
 async def create_assignment(
     assignment_data: AssignmentCreate,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ):
     """
     Создать новое назначение студенту
@@ -24,7 +27,7 @@ async def create_assignment(
     Если для данного студента и практики уже есть назначение, 
     оно будет обновлено новыми данными.
     """
-    repo = AssignmentRepository(session)
+    repo = AssignmentRepository(session, user_id=user.user_id)
     
     try:
         existing = await repo.get_by_student_practice(
@@ -48,6 +51,9 @@ async def create_assignment(
 
         await session.commit()
         await session.refresh(assignment)
+    except ValueError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception:
         await session.rollback()
         raise
@@ -59,13 +65,14 @@ async def create_assignment(
 async def mass_create_assignments(
     mass_data: MassAssignmentCreate,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ):
     """
     Массовое назначение организации всем студентам группы
     
     Создает или обновляет назначения для всех студентов указанной группы.
     """
-    repo = AssignmentRepository(session)
+    repo = AssignmentRepository(session, user_id=user.user_id)
     
     try:
         return await repo.mass_assign_to_group(
@@ -77,6 +84,8 @@ async def mass_create_assignments(
             payment_type=mass_data.payment_type,
         )
     except Exception as exc:
+        if isinstance(exc, ValueError):
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         raise HTTPException(
             status_code=400,
             detail=f"Ошибка массового назначения: {exc}",
@@ -88,9 +97,10 @@ async def update_assignment(
     assignment_id: int,
     update_data: AssignmentUpdate,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ):
     """Обновить существующее назначение"""
-    repo = AssignmentRepository(session)
+    repo = AssignmentRepository(session, user_id=user.user_id)
     
     try:
         assignment = await repo.update_assignment(assignment_id, update_data)
@@ -109,9 +119,10 @@ async def update_assignment(
 async def get_assignments_by_practice(
     practice_id: int,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ):
     """Получить все назначения для практики"""
-    repo = AssignmentRepository(session)
+    repo = AssignmentRepository(session, user_id=user.user_id)
     assignments = await repo.get_by_practice(practice_id)
     return assignments
 
@@ -120,9 +131,10 @@ async def get_assignments_by_practice(
 async def get_assignment(
     assignment_id: int,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ):
     """Получить назначение по ID"""
-    repo = AssignmentRepository(session)
+    repo = AssignmentRepository(session, user_id=user.user_id)
     assignment = await repo.get_assignment(assignment_id)
     
     if not assignment:

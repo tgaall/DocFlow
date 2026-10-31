@@ -10,13 +10,17 @@ INTAKE_YEAR_PATTERN = re.compile(r"-(\d{2})-")
 
 
 class StudentRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, user_id: int | None = None) -> None:
         self.session = session
+        self.user_id = user_id
 
     async def get_or_create(
         self, full_name: str, group: str, record_book: int
     ) -> tuple[StudentModel, bool]:
-        stmt = select(StudentModel).where(StudentModel.record_book == record_book)
+        stmt = select(StudentModel).where(
+            StudentModel.record_book == record_book,
+            StudentModel.user_id == self.user_id,
+        )
         existing = (await self.session.execute(stmt)).scalar_one_or_none()
         if existing is not None:
             existing_group = await self.session.get(Group, existing.group_id)
@@ -31,7 +35,7 @@ class StudentRepository:
             return existing, False
 
         group_result = await self.session.execute(
-            select(Group).where(Group.name == group)
+            select(Group).where(Group.name == group, Group.user_id == self.user_id)
         )
         group_model = group_result.scalar_one_or_none()
         if group_model is None:
@@ -40,7 +44,9 @@ class StudentRepository:
                 raise ValueError(
                     f"Не удалось определить год набора из названия группы {group!r}"
                 )
-            group_model = Group(name=group, year=2000 + int(match.group(1)))
+            group_model = Group(
+                name=group, year=2000 + int(match.group(1)), user_id=self.user_id
+            )
             self.session.add(group_model)
             await self.session.flush()
 
@@ -48,6 +54,7 @@ class StudentRepository:
             full_name=full_name,
             group_id=group_model.id,
             record_book=record_book,
+            user_id=self.user_id,
         )
         self.session.add(student)
         await self.session.flush()
@@ -55,6 +62,7 @@ class StudentRepository:
 
     async def get_students(self, group_id: int | None = None) -> list[StudentModel]:
         stmt = select(StudentModel)
+        stmt = stmt.where(StudentModel.user_id == self.user_id)
         if group_id is not None:
             stmt = stmt.where(StudentModel.group_id == group_id)
         result = await self.session.execute(stmt)
@@ -62,20 +70,25 @@ class StudentRepository:
 
 
 class GroupRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, user_id: int | None = None) -> None:
         self.session = session
+        self.user_id = user_id
 
     async def is_exist(self, group_name: str) -> bool:
-        stmt = select(Group).where(Group.name == group_name)
+        stmt = select(Group).where(
+            Group.name == group_name, Group.user_id == self.user_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none() is not None
 
     async def get_group(self, group_name: str) -> Group | None:
-        stmt = select(Group).where(Group.name == group_name)
+        stmt = select(Group).where(
+            Group.name == group_name, Group.user_id == self.user_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_all_groups(self) -> list[Group]:
-        stmt = select(Group)
+        stmt = select(Group).where(Group.user_id == self.user_id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())

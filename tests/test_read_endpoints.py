@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.db.base import Base
 from src.main import app
+from src.models.auth import User
 from src.models.domain import Group, Organization, Practice, Student, Supervisor
 from src.routers.groups import get_groups
 from src.routers.orgs import get_organizations
@@ -33,10 +34,13 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
         async with self.session_factory() as session:
-            group_one = Group(name="ГР-25", department="ИТ", year=2025)
-            group_two = Group(name="ГР-24", department=None, year=2024)
-            supervisor = Supervisor(full_name="Иванов И.И.", position="Преподаватель")
-            organization = Organization(name="ООО Пример", address="г. Уфа")
+            self.user = User(username="reader", hashed_password="hash")
+            session.add(self.user)
+            await session.flush()
+            group_one = Group(name="ГР-25", department="ИТ", year=2025, user_id=self.user.user_id)
+            group_two = Group(name="ГР-24", department=None, year=2024, user_id=self.user.user_id)
+            supervisor = Supervisor(full_name="Иванов И.И.", position="Преподаватель", user_id=self.user.user_id)
+            organization = Organization(name="ООО Пример", address="г. Уфа", user_id=self.user.user_id)
             session.add_all([group_one, group_two, supervisor, organization])
             await session.flush()
 
@@ -46,11 +50,13 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
                         full_name="Петров П.П.",
                         group_id=group_one.id,
                         record_book=2501,
+                        user_id=self.user.user_id,
                     ),
                     Student(
                         full_name="Сидорова А.А.",
                         group_id=group_two.id,
                         record_book=2401,
+                        user_id=self.user.user_id,
                     ),
                 ]
             )
@@ -61,6 +67,7 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
                     end_date=date(2026, 6, 30),
                     group_id=group_one.id,
                     supervisor_id=supervisor.id,
+                    user_id=self.user.user_id,
                 )
             )
             await session.commit()
@@ -73,7 +80,7 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_groups_endpoint_returns_group_schema(self) -> None:
         async with self.session_factory() as session:
-            groups = await get_groups(session)
+            groups = await get_groups(session, self.user)
 
         parsed = TypeAdapter(list[GroupRead]).validate_python(groups)
         self.assertEqual({group.name for group in parsed}, {"ГР-25", "ГР-24"})
@@ -84,10 +91,11 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_students_endpoint_can_filter_by_group_id(self) -> None:
         async with self.session_factory() as session:
-            all_students = await get_students(group_id=None, session=session)
+            all_students = await get_students(group_id=None, session=session, user=self.user)
             group_students = await get_students(
                 group_id=self.group_id,
                 session=session,
+                user=self.user,
             )
 
         parsed_all_students = TypeAdapter(list[StudentRead]).validate_python(
@@ -102,21 +110,21 @@ class ReadEndpointTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_organizations_endpoint_returns_organization_schema(self) -> None:
         async with self.session_factory() as session:
-            organizations = await get_organizations(session)
+            organizations = await get_organizations(session, self.user)
 
         parsed = TypeAdapter(list[OrganizationRead]).validate_python(organizations)
         self.assertEqual(parsed[0].name, "ООО Пример")
 
     async def test_supervisors_endpoint_returns_supervisor_schema(self) -> None:
         async with self.session_factory() as session:
-            supervisors = await get_supervisors(session)
+            supervisors = await get_supervisors(session, self.user)
 
         parsed = TypeAdapter(list[SupervisorRead]).validate_python(supervisors)
         self.assertEqual(parsed[0].full_name, "Иванов И.И.")
 
     async def test_practices_endpoint_returns_practice_schema(self) -> None:
         async with self.session_factory() as session:
-            practices = await get_practices(session)
+            practices = await get_practices(session, self.user)
 
         parsed = TypeAdapter(list[PracticeListRead]).validate_python(practices)
         self.assertEqual(parsed[0].group_id, self.group_id)

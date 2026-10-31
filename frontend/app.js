@@ -7,9 +7,10 @@ const data = {
 const SELECT_ALL_PRACTICES_VALUE = "__select_all_practices__";
 const PRACTICE_FORM_OPTIONS = ["Очно", "Дистанционно"];
 const PAYMENT_TYPE_OPTIONS = ["С оплатой", "Без оплаты"];
+let authMode = "login";
 
 async function api(url, options) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, { credentials: "same-origin", ...options });
 
   if (!response.ok) {
     let message = response.statusText;
@@ -24,6 +25,10 @@ async function api(url, options) {
     }
 
     throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return null;
   }
 
   return response.json();
@@ -551,6 +556,71 @@ async function downloadDocument(form, endpoint, messageId, fallbackFilename) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  const authForm = document.getElementById("auth-form");
+  const authPanel = document.getElementById("auth-panel");
+  const appShell = document.getElementById("app-shell");
+
+  function updateAuthForm() {
+    const registering = authMode === "register";
+    document.getElementById("auth-title").textContent = registering
+      ? "Создание аккаунта"
+      : "Вход в DocFlow";
+    document.getElementById("auth-submit").textContent = registering
+      ? "Зарегистрироваться"
+      : "Войти";
+    document.getElementById("auth-toggle").textContent = registering
+      ? "Уже есть аккаунт? Войти"
+      : "Создать аккаунт";
+    document.getElementById("auth-password").autocomplete = registering
+      ? "new-password"
+      : "current-password";
+  }
+
+  async function showApplication() {
+    authPanel.hidden = true;
+    appShell.hidden = false;
+    try {
+      await refreshData();
+      showMessage("overview-message", "", false);
+    } catch (error) {
+      showMessage("overview-message", `Не удалось загрузить данные: ${error.message}`, true);
+    }
+  }
+
+  document.getElementById("auth-toggle").addEventListener("click", () => {
+    authMode = authMode === "login" ? "register" : "login";
+    showMessage("auth-message", "", false);
+    authForm.reset();
+    updateAuthForm();
+  });
+
+  authForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const credentials = Object.fromEntries(new FormData(authForm));
+    try {
+      await api(`/auth/${authMode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
+      await showApplication();
+    } catch (error) {
+      showMessage("auth-message", error.message, true);
+    }
+  });
+
+  document.getElementById("logout-button").addEventListener("click", async () => {
+    try {
+      await api("/auth/logout", { method: "POST" });
+    } finally {
+      appShell.hidden = true;
+      authPanel.hidden = false;
+      authForm.reset();
+      authMode = "login";
+      updateAuthForm();
+    }
+  });
+
   ["order-practices", "report-practices"].forEach((selectId) => {
     document.getElementById(selectId).addEventListener("change", (event) => {
       const select = event.currentTarget;
@@ -673,11 +743,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  refreshData().catch((error) => {
-    showMessage(
-      "overview-message",
-      `Не удалось загрузить справочники: ${error.message}`,
-      true,
-    );
-  });
+  api("/auth/me")
+    .then(showApplication)
+    .catch(() => {
+      authPanel.hidden = false;
+      appShell.hidden = true;
+    });
 });

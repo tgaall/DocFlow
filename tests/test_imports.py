@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from src.db.base import Base
 from src.db.bootstrap import migrate_legacy_schema
 from src.models.domain import Practice
+from src.models.auth import User
 from src.routers.imports import import_gradesheet_endpoint
 from src.routers.practices import create_practice
 from src.schemas.imports import ImportResult, PracticeCreate
@@ -82,16 +83,22 @@ class GradesheetEndpointTests(unittest.IsolatedAsyncioTestCase):
             "src.routers.imports.import_gradesheet",
             new=AsyncMock(return_value=expected),
         ) as import_mock:
-            result = await import_gradesheet_endpoint(file=upload, session=session)
+            result = await import_gradesheet_endpoint(
+                file=upload, session=session, user=User(user_id=1, username="test", hashed_password="hash")
+            )
 
         self.assertEqual(result, expected)
-        import_mock.assert_awaited_once_with(session, upload.file)
+        import_mock.assert_awaited_once_with(session, upload.file, user_id=1)
 
     async def test_rejects_file_without_pdf_extension(self) -> None:
         upload = UploadFile(file=io.BytesIO(b"not a pdf"), filename="grades.txt")
 
         with self.assertRaises(HTTPException) as context:
-            await import_gradesheet_endpoint(file=upload, session=object())
+            await import_gradesheet_endpoint(
+                file=upload,
+                session=object(),
+                user=User(user_id=1, username="test", hashed_password="hash"),
+            )
 
         self.assertEqual(context.exception.status_code, 400)
         self.assertEqual(context.exception.detail, "Ожидается .pdf файл")
@@ -149,19 +156,23 @@ class ImportDatabaseTests(unittest.IsolatedAsyncioTestCase):
                 ).encode("cp1251")
 
                 async with session_factory() as session:
-                    result = await import_students(session, student_file)
+                    user = User(username="importer", hashed_password="hash")
+                    session.add(user)
+                    await session.flush()
+                    user_id = user.user_id
+                    result = await import_students(session, student_file, user_id)
                     self.assertEqual((result.created, result.skipped), (2, 0))
 
                 async with session_factory() as session:
-                    result = await import_students(session, student_file)
+                    result = await import_students(session, student_file, user_id)
                     self.assertEqual((result.created, result.skipped), (0, 2))
 
                 async with session_factory() as session:
-                    result = await import_organizations(session, organization_file)
+                    result = await import_organizations(session, organization_file, user_id)
                     self.assertEqual((result.created, result.skipped), (2, 0))
 
                 async with session_factory() as session:
-                    result = await import_organizations(session, organization_file)
+                    result = await import_organizations(session, organization_file, user_id)
                     self.assertEqual((result.created, result.skipped), (0, 2))
             finally:
                 await engine.dispose()
@@ -176,7 +187,11 @@ class ImportDatabaseTests(unittest.IsolatedAsyncioTestCase):
 
                 session_factory = async_sessionmaker(engine, expire_on_commit=False)
                 async with session_factory() as session:
-                    await import_students(session, make_student_workbook())
+                    user = User(username="practice-owner", hashed_password="hash")
+                    session.add(user)
+                    await session.flush()
+                    user_id = user.user_id
+                    await import_students(session, make_student_workbook(), user_id)
 
                 async with session_factory() as session:
                     result = await create_practice(
@@ -187,6 +202,7 @@ class ImportDatabaseTests(unittest.IsolatedAsyncioTestCase):
                             end_date=date(2026, 6, 30),
                         ),
                         session=session,
+                        user=User(user_id=user_id, username="practice-owner", hashed_password="hash"),
                     )
                     self.assertEqual(result.group, "БПО09и-25-03")
                     self.assertEqual(result.type, "Учебная")

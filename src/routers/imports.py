@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
+from src.auth.sessionbased import get_current_user
+from src.models.auth import User
 from src.schemas.imports import ImportResult
 from src.services.imports import import_gradesheet, import_organizations, import_students
 
@@ -26,6 +28,7 @@ router = APIRouter(prefix="/import", tags=["Import"])
 async def import_students_endpoint(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> ImportResult:
     if not file.filename or not file.filename.lower().endswith(".xlsx"):
         raise HTTPException(
@@ -38,7 +41,7 @@ async def import_students_endpoint(
         raise HTTPException(status_code=400, detail="Пустой файл")
 
     try:
-        return await import_students(session, content)
+        return await import_students(session, content, user_id=user.user_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -52,6 +55,7 @@ async def import_students_endpoint(
 async def import_organizations_endpoint(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> ImportResult:
     if not file.filename or not file.filename.lower().endswith(".txt"):
         raise HTTPException(
@@ -64,7 +68,7 @@ async def import_organizations_endpoint(
         raise HTTPException(status_code=400, detail="Пустой файл")
 
     try:
-        return await import_organizations(session, content)
+        return await import_organizations(session, content, user_id=user.user_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -78,6 +82,7 @@ async def import_organizations_endpoint(
 async def import_gradesheet_endpoint(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> ImportResult:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(
@@ -86,6 +91,6 @@ async def import_gradesheet_endpoint(
         )
 
     try:
-        return await import_gradesheet(session, file.file)
+        return await import_gradesheet(session, file.file, user_id=user.user_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

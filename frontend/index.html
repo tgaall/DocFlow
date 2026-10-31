@@ -9,13 +9,27 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <link rel="stylesheet" href="/app/style.css" />
-    <script src="/app/app.js?v=6" defer></script>
+    <script src="/app/app.js?v=7" defer></script>
   </head>
   <body>
     <!-- data-theme="light" pins Pico's light theme so its
          prefers-color-scheme:dark block cannot repaint the DocFlow palette.
          The DocFlow look lives in /app/style.css. -->
     <main class="container">
+      <section id="auth-panel">
+        <h2 id="auth-title">Вход в DocFlow</h2>
+        <form id="auth-form">
+          <label for="auth-username">Логин</label>
+          <input id="auth-username" name="username" autocomplete="username" required maxlength="50" />
+          <label for="auth-password">Пароль (минимум 8 символов)</label>
+          <input id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" />
+          <button id="auth-submit" type="submit">Войти</button>
+        </form>
+        <button id="auth-toggle" type="button">Создать аккаунт</button>
+        <p id="auth-message" role="alert" hidden></p>
+      </section>
+
+      <div id="app-shell" hidden>
       <header>
         <h1>DocFlow</h1>
         <nav aria-label="Основная навигация">
@@ -25,6 +39,9 @@
             <li><a href="#practice">Практика</a></li>
             <li><a href="#assignments">Распределение студентов</a></li>
             <li><a href="#documents">Документы</a></li>
+          </ul>
+          <ul>
+            <li><button id="logout-button" type="button">Выйти</button></li>
           </ul>
         </nav>
       </header>
@@ -293,6 +310,7 @@
           <p id="report-message" role="alert" hidden></p>
         </article>
       </section>
+      </div>
     </main>
   </body>
 </html>
