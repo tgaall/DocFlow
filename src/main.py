@@ -1,15 +1,18 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.db.bootstrap import init_db
 from src.routers.assignments import router as assignments_router
-from src.routers.documents import order_router, router as documents_router
-from src.routers.imports import router as imports_router
+from src.routers.documents import order_router
+from src.routers.documents import router as documents_router
 from src.routers.groups import router as groups_router
+from src.routers.imports import router as imports_router
 from src.routers.orgs import router as organizations_router
-from src.routers.practices import practice_list_router, router as practices_router
+from src.routers.practices import practice_list_router
+from src.routers.practices import router as practices_router
 from src.routers.students import router as students_router
 from src.routers.supervisors import router as supervisors_router
 
@@ -34,6 +37,11 @@ app.include_router(order_router)
 app.include_router(assignments_router)
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
+async def homepage():
+    return RedirectResponse(url="/app/", status_code=307)
+
+
+@app.get("/health")
 async def check_health():
     return {"message": "everything is okay"}
