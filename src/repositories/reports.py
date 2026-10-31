@@ -16,14 +16,15 @@ from src.models.domain import (
 
 
 class ReportRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, user_id: int | None = None) -> None:
         self.session = session
+        self.user_id = user_id
 
     async def get_groups_report_data(
         self,
         practice_ids: list[int] | None = None,
-        # practice_type: str | None = None,
-        # groups: list[str] | None = None,
+        practice_type: str | None = None,
+        groups: list[str] | None = None,
     ) -> list[dict]:
         """
         Получить данные для отчета по группам
@@ -75,11 +76,20 @@ class ReportRepository:
                 Practice.end_date,
             )
             .order_by(Group.name)
+            .where(
+                Practice.user_id == self.user_id,
+                Group.user_id == self.user_id,
+                Student.user_id == self.user_id,
+            )
         )
 
         # Применить фильтры
         if practice_ids:
             stmt = stmt.where(Practice.id.in_(practice_ids))
+        if practice_type:
+            stmt = stmt.where(Practice.type == practice_type)
+        if groups:
+            stmt = stmt.where(Group.name.in_(groups))
 
         result = await self.session.execute(stmt)
         rows = result.all()
@@ -122,7 +132,16 @@ class ReportRepository:
             .join(Assignment, Assignment.organization_id == Organization.id)
             .join(Student, Student.id == Assignment.student_id)
             .join(Practice, Practice.id == Assignment.practice_id)
-            .outerjoin(Supervisor, Supervisor.id == Assignment.supervisor_id)
+            .outerjoin(
+                Supervisor,
+                (Supervisor.id == Assignment.supervisor_id)
+                & (Supervisor.user_id == self.user_id),
+            )
+            .where(
+                Practice.user_id == self.user_id,
+                Organization.user_id == self.user_id,
+                Student.user_id == self.user_id,
+            )
         )
         if practice_ids:
             stmt = stmt.where(Practice.id.in_(practice_ids))
@@ -162,6 +181,10 @@ class ReportRepository:
             select(Supervisor.full_name)
             .join(Practice, Practice.supervisor_id == Supervisor.id)
             .distinct()
+            .where(
+                Practice.user_id == self.user_id,
+                Supervisor.user_id == self.user_id,
+            )
         )
         if practice_ids:
             stmt = stmt.where(Practice.id.in_(practice_ids))
@@ -180,6 +203,7 @@ class ReportRepository:
     ) -> GroupReport:
         """Создать запись отчета по группе"""
         report = GroupReport(
+            user_id=self.user_id,
             group_id=group_id,
             practice_id=practice_id,
             total_students=total_students,

@@ -2,6 +2,7 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from src.models.domain import (
     Assignment,
@@ -15,17 +16,64 @@ from src.schemas.assignments import AssignmentCreate, AssignmentUpdate
 
 
 class AssignmentRepository:
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(self, session: AsyncSession, user_id: int | None = None) -> None:
         self.session = session
+        self.user_id = user_id
 
     async def create_assignment(self, data: AssignmentCreate) -> Assignment:
+        practice = await self.get_owned_practice(data.practice_id)
+        if practice is None:
+            raise ValueError("Practice not found")
+        student = await self.session.execute(
+            select(Student).where(
+                Student.id == data.student_id, Student.user_id == self.user_id
+            )
+        )
+        student_model = student.scalar_one_or_none()
+        if student_model is None:
+            raise ValueError("Student not found")
+        if student_model.group_id != practice.group_id:
+            raise ValueError("Student does not belong to practice group")
+        organization = await self.session.execute(
+            select(Organization).where(
+                Organization.id == data.organization_id,
+                Organization.user_id == self.user_id,
+            )
+        )
+        if organization.scalar_one_or_none() is None:
+            raise ValueError("Organization not found")
+        if data.supervisor_id is not None:
+            supervisor = await self.session.execute(
+                select(Supervisor.id).where(
+                    Supervisor.id == data.supervisor_id,
+                    Supervisor.user_id == self.user_id,
+                )
+            )
+            if supervisor.scalar_one_or_none() is None:
+                raise ValueError("Supervisor not found")
         assignment = Assignment(**data.model_dump())
         self.session.add(assignment)
         await self.session.flush()
         return assignment
 
     async def get_assignment(self, assignment_id: int) -> Assignment | None:
-        return await self.session.get(Assignment, assignment_id)
+        result = await self.session.execute(
+            select(Assignment)
+            .join(Practice, Practice.id == Assignment.practice_id)
+            .where(
+                Assignment.id == assignment_id,
+                Practice.user_id == self.user_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def get_owned_practice(self, practice_id: int) -> Practice | None:
+        result = await self.session.execute(
+            select(Practice).where(
+                Practice.id == practice_id, Practice.user_id == self.user_id
+            )
+        )
+        return result.scalar_one_or_none()
 
     async def update_assignment(
         self, assignment_id: int, data: AssignmentUpdate
@@ -34,7 +82,27 @@ class AssignmentRepository:
         if assignment is None:
             raise ValueError(f"Assignment {assignment_id} not found")
 
-        for field, value in data.model_dump(exclude_unset=True).items():
+        updates = data.model_dump(exclude_unset=True)
+        if updates.get("organization_id") is not None:
+            result = await self.session.execute(
+                select(Organization.id).where(
+                    Organization.id == updates["organization_id"],
+                    Organization.user_id == self.user_id,
+                )
+            )
+            if result.scalar_one_or_none() is None:
+                raise ValueError("Organization not found")
+        if updates.get("supervisor_id") is not None:
+            result = await self.session.execute(
+                select(Supervisor.id).where(
+                    Supervisor.id == updates["supervisor_id"],
+                    Supervisor.user_id == self.user_id,
+                )
+            )
+            if result.scalar_one_or_none() is None:
+                raise ValueError("Supervisor not found")
+
+        for field, value in updates.items():
             setattr(assignment, field, value)
 
         await self.session.flush()
@@ -43,15 +111,23 @@ class AssignmentRepository:
     async def get_by_student_practice(
         self, student_id: int, practice_id: int
     ) -> Assignment | None:
-        statement = select(Assignment).where(
+        statement = select(Assignment).join(
+            Practice, Practice.id == Assignment.practice_id
+        ).where(
             Assignment.student_id == student_id,
             Assignment.practice_id == practice_id,
+            Practice.user_id == self.user_id,
         )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def get_by_practice(self, practice_id: int) -> list[Assignment]:
-        statement = select(Assignment).where(Assignment.practice_id == practice_id)
+        statement = select(Assignment).join(
+            Practice, Practice.id == Assignment.practice_id
+        ).where(
+            Assignment.practice_id == practice_id,
+            Practice.user_id == self.user_id,
+        )
         result = await self.session.execute(statement)
         return list(result.scalars().all())
 
@@ -63,6 +139,12 @@ class AssignmentRepository:
             .join(Practice, Practice.id == Assignment.practice_id)
             .join(Group, Group.id == Student.group_id)
             .where(Practice.id == practice_id)
+            .where(Practice.user_id == self.user_id)
+            .where(
+                Student.user_id == self.user_id,
+                Organization.user_id == self.user_id,
+                Group.user_id == self.user_id,
+            )
             .order_by(Student.full_name)
         )
         result = await self.session.execute(statement)
@@ -103,7 +185,32 @@ class AssignmentRepository:
     ) -> list[Assignment]:
         """Create or update this practice's assignment for every student in a group."""
         try:
-            statement = select(Student).where(Student.group_id == group_id)
+            practice = await self.get_owned_practice(practice_id)
+            if practice is None:
+                raise ValueError("Practice not found")
+            organization_result = await self.session.execute(
+                select(Organization).where(
+                    Organization.id == organization_id,
+                    Organization.user_id == self.user_id,
+                )
+            )
+            if organization_result.scalar_one_or_none() is None:
+                raise ValueError("Organization not found")
+            if supervisor_id is not None:
+                supervisor_result = await self.session.execute(
+                    select(Supervisor.id).where(
+                        Supervisor.id == supervisor_id,
+                        Supervisor.user_id == self.user_id,
+                    )
+                )
+                if supervisor_result.scalar_one_or_none() is None:
+                    raise ValueError("Supervisor not found")
+            if practice.group_id != group_id:
+                raise ValueError("Group does not belong to practice")
+            statement = select(Student).where(
+                Student.group_id == group_id,
+                Student.user_id == self.user_id,
+            )
             result = await self.session.execute(statement)
             students = list(result.scalars().all())
 
@@ -140,18 +247,52 @@ class AssignmentRepository:
     async def get_order_rows(
         self,
         practice_ids: list[int] | None = None,
+        practice_type: str | None = None,
+        groups: list[str] | None = None,
     ) -> list[dict[str, str]]:
+        owned_practice = aliased(Practice)
         statement = (
             select(Student, Assignment, Organization, Practice, Supervisor, Group)
-            .outerjoin(Assignment, Assignment.student_id == Student.id)
-            .outerjoin(Organization, Organization.id == Assignment.organization_id)
-            .outerjoin(Practice, Practice.id == Assignment.practice_id)
-            .outerjoin(Supervisor, Supervisor.id == Assignment.supervisor_id)
+            .select_from(Student)
+            .outerjoin(
+                Assignment,
+                (Assignment.student_id == Student.id)
+                & (
+                    Assignment.practice_id.in_(
+                        select(owned_practice.id).where(
+                            owned_practice.user_id == self.user_id
+                        )
+                    )
+                ),
+            )
+            .outerjoin(
+                Organization,
+                (Organization.id == Assignment.organization_id)
+                & (Organization.user_id == self.user_id),
+            )
+            .outerjoin(
+                Practice,
+                (Practice.id == Assignment.practice_id)
+                & (Practice.user_id == self.user_id),
+            )
+            .outerjoin(
+                Supervisor,
+                (Supervisor.id == Assignment.supervisor_id)
+                & (Supervisor.user_id == self.user_id),
+            )
             .join(Group, Group.id == Student.group_id)
             .order_by(Student.id, Assignment.id)
+            .where(
+                Student.user_id == self.user_id,
+                Group.user_id == self.user_id,
+            )
         )
         if practice_ids:
             statement = statement.where(Practice.id.in_(practice_ids))
+        if practice_type:
+            statement = statement.where(Practice.type == practice_type)
+        if groups:
+            statement = statement.where(Group.name.in_(groups))
         result = await self.session.execute(statement)
 
         rows: list[dict[str, str]] = []

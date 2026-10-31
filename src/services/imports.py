@@ -190,8 +190,10 @@ def _parse_organizations(file_bytes: bytes) -> list[tuple[int, str, str | None]]
     return organizations
 
 
-async def import_students(session: AsyncSession, file_bytes: bytes) -> ImportResult:
-    repo = StudentRepository(session)
+async def import_students(
+    session: AsyncSession, file_bytes: bytes, user_id: int | None = None
+) -> ImportResult:
+    repo = StudentRepository(session, user_id=user_id)
     created = skipped = 0
     try:
         for _, full_name, group, record_book in _read_excel(file_bytes):
@@ -208,13 +210,15 @@ async def import_students(session: AsyncSession, file_bytes: bytes) -> ImportRes
 
 
 async def import_gradesheet(
-    session: AsyncSession, source: str | Path | BinaryIO
+    session: AsyncSession, source: str | Path | BinaryIO, user_id: int | None = None
 ) -> ImportResult:
     records = parse_statement(source)
     updated = 0
     try:
         group_result = await session.execute(
-            select(Group).where(Group.name == records[0]["group"])
+            select(Group).where(
+                Group.name == records[0]["group"], Group.user_id == user_id
+            )
         )
         group = group_result.scalar_one_or_none()
         if group is None:
@@ -224,6 +228,7 @@ async def import_gradesheet(
             stmt = select(Student).where(
                 Student.group_id == group.id,
                 Student.full_name == record["full_name"],
+                Student.user_id == user_id,
             )
             result = await session.execute(stmt)
             matching_students = list(result.scalars().all())
@@ -249,9 +254,9 @@ async def import_gradesheet(
 
 
 async def import_organizations(
-    session: AsyncSession, file_bytes: bytes
+    session: AsyncSession, file_bytes: bytes, user_id: int | None = None
 ) -> ImportResult:
-    repo = OrganizationRepository(session)
+    repo = OrganizationRepository(session, user_id=user_id)
     created = skipped = 0
     try:
         for _, name, address in _parse_organizations(file_bytes):

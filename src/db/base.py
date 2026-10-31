@@ -2,7 +2,7 @@ import os
 
 from sqlalchemy.orm import DeclarativeBase
 
-DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///./practice.db"
+DEFAULT_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 
 def get_database_url(database_url: str | None = None) -> str:

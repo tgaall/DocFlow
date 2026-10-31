@@ -16,6 +16,7 @@ from src.models.domain import (
     Student,
     Supervisor,
 )
+from src.models.auth import User
 from src.repositories.assignments import AssignmentRepository
 from src.repositories.reports import ReportRepository
 from src.services.documents import render_order, render_report
@@ -345,7 +346,10 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                     directions = await AssignmentRepository(
                         session
                     ).get_directions_data(practice.id)
-                    response = await download_directions(practice.id, session)
+                    response = await download_directions(
+                        practice.id, session,
+                        user=User(user_id=None, username="test", hashed_password="hash"),
+                    )
 
                 self.assertEqual(len(directions), 2)
                 self.assertEqual(directions[0]["group_name"], "ГР-25")
@@ -504,6 +508,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                     response = await download_order(
                         session=session,
                         practice_type="Учебная",
+                        user=User(user_id=None, username="test", hashed_password="hash"),
                     )
 
                 self.assertEqual(
@@ -535,6 +540,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                         await download_order(
                             session=session,
                             practice_type="Учебная",
+                            user=User(user_id=None, username="test", hashed_password="hash"),
                         )
 
                 self.assertEqual(error.exception.status_code, 404)

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from src.db.bootstrap import init_db
+from src.auth.sessionbased import router as auth_router
 from src.routers.assignments import router as assignments_router
 from src.routers.documents import order_router, router as documents_router
 from src.routers.imports import router as imports_router
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="DocFlow", lifespan=lifespan)
 app.mount("/app", StaticFiles(directory="frontend", html=True))
+app.include_router(auth_router)
 app.include_router(imports_router)
 app.include_router(practices_router)
 app.include_router(practice_list_router)

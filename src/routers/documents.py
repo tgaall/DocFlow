@@ -5,6 +5,8 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_async_session
+from src.auth.sessionbased import get_current_user
+from src.models.auth import User
 from src.repositories.assignments import AssignmentRepository
 from src.repositories.reports import ReportRepository
 from src.schemas.documents import DirectionContext
@@ -45,8 +47,11 @@ async def render_direction_test(context: DirectionContext) -> Response:
 async def download_directions(
     practice_id: int,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> Response:
-    directions = await AssignmentRepository(session).get_directions_data(practice_id)
+    directions = await AssignmentRepository(
+        session, user_id=user.user_id
+    ).get_directions_data(practice_id)
     if not directions:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -76,8 +81,17 @@ async def download_directions(
 async def download_order(
     session: AsyncSession = Depends(get_async_session),
     practice_ids: Annotated[list[int] | None, Query()] = None,
+    practice_type: str | None = None,
+    groups: Annotated[list[str] | None, Query()] = None,
+    user: User = Depends(get_current_user),
 ) -> Response:
-    rows = await AssignmentRepository(session).get_order_rows(practice_ids=practice_ids)
+    rows = await AssignmentRepository(
+        session, user_id=user.user_id
+    ).get_order_rows(
+        practice_ids=practice_ids,
+        practice_type=practice_type,
+        groups=groups,
+    )
     if not rows:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -107,8 +121,9 @@ async def download_order(
 async def download_report(
     practice_ids: Annotated[list[int] | None, Query()] = None,
     session: AsyncSession = Depends(get_async_session),
+    user: User = Depends(get_current_user),
 ) -> Response:
-    report_repository = ReportRepository(session)
+    report_repository = ReportRepository(session, user_id=user.user_id)
     groups_data = await report_repository.get_groups_report_data(
         practice_ids=practice_ids
     )
