@@ -1000,95 +1000,10 @@ async function validateOrganizationsFile(file) {
   return { count, errors, uploadFile, encoding };
 }
 
-function pdfItemsToText(items) {
-  const lines = [];
-  let current = [];
-  let previousY = null;
-  const flushLine = () => {
-    let text = "";
-    let previous = null;
-    current.sort((a, b) => a.x - b.x).forEach((entry) => {
-      const separated = previous && entry.x - (previous.x + previous.width) > 2;
-      if (separated && !text.endsWith(" ") && !entry.text.startsWith(" ")) text += " ";
-      text += entry.text;
-      previous = entry;
-    });
-    lines.push(text);
-    current = [];
-  };
-  items.forEach((item) => {
-    const y = Math.round(item.transform[5] * 2) / 2;
-    if (previousY !== null && Math.abs(y - previousY) > 2 && current.length) flushLine();
-    if (item.str.trim()) current.push({ x: item.transform[4], width: item.width, text: item.str });
-    previousY = y;
-    if (item.hasEOL && current.length) {
-      flushLine();
-      previousY = null;
-    }
-  });
-  if (current.length) flushLine();
-  return lines.join("\n");
-}
-
-async function validateGradesheetFile(file) {
-  if (!window.pdfjsLib) {
-    return { count: 0, errors: [importError("Библиотека проверки PDF не загрузилась. Проверьте соединение и обновите страницу.")] };
-  }
-  const task = window.pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
-  const pdf = await task.promise;
-  const pages = [];
-  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    const page = await pdf.getPage(pageNumber);
-    const content = await page.getTextContent();
-    pages.push(pdfItemsToText(content.items));
-  }
-  const text = pages.join("\n");
-  const groupMatch = text.match(/\b[А-ЯЁA-Z]{2,}\d{2}[А-ЯЁа-яё]?-?\d{2}-\d{2}\b/i);
-  const errors = [];
-  if (!groupMatch) errors.push(importError("Не удалось определить группу в ведомости."));
-  const fragments = text.split(/\r?\n/).map((line) => line.replace(/\s+/g, " ").trim());
-  const gradeValues = new Map([["отлично", 5], ["хорошо", 4], ["удовлетворительно", 3], ["неявка", 2]]);
-  const students = [];
-  let index = 0;
-  while (index < fragments.length) {
-    if (!/^\d{1,3}$/.test(fragments[index])) {
-      index += 1;
-      continue;
-    }
-    const startIndex = index;
-    const nameParts = [];
-    index += 1;
-    while (index < fragments.length && !/^\d{5,}$/.test(fragments[index])) {
-      nameParts.push(fragments[index]);
-      index += 1;
-    }
-    if (index >= fragments.length) break;
-    const fullName = nameParts.join(" ").trim();
-    index += 1;
-    while (index < fragments.length && !fragments[index]) index += 1;
-    if (index >= fragments.length) break;
-    const gradeText = fragments[index].toLowerCase();
-    const grade = gradeValues.get(gradeText);
-    if (!fullName || fullName.split(" ").length < 2 || fullName.split(" ").length > 4) {
-      index += 1;
-      continue;
-    }
-    if (grade === undefined) {
-      errors.push(importError(`Неизвестная оценка для студента ${fullName}.`, startIndex + 1));
-    } else {
-      students.push({ fullName, grade });
-    }
-    index += 1;
-  }
-  if (!students.length && !errors.length) errors.push(importError("В PDF-ведомости не найдены студенты с оценками."));
-  await pdf.destroy();
-  return { count: students.length, errors };
-}
-
 async function validateImportFile(file, type) {
   if (type === "students") return validateStudentsFile(file);
   if (type === "organizations") return validateOrganizationsFile(file);
-  return validateGradesheetFile(file);
+  return { count: 1, errors: [] };
 }
 
 function renderImportReport() {
@@ -1100,10 +1015,13 @@ function renderImportReport() {
   const report = $("import-report");
   report.hidden = false;
   report.classList.toggle("has-errors", result.errors.length > 0);
+  const isGradesheet = importState.type === "gradesheets";
   const countLabel = `${result.count} ${plural(result.count, ["запись", "записи", "записей"])}`;
   $("import-report-summary").textContent = result.errors.length
     ? `Найдено ${result.errors.length} ${plural(result.errors.length, ["ошибка", "ошибки", "ошибок"])}. Корректных записей: ${countLabel}. Исправьте файл и загрузите его снова: импорт выполняется целиком.`
-    : `Проверено: ${countLabel}. Файл готов к импорту.`;
+    : isGradesheet
+      ? "Ведомость будет проверена сервером при импорте."
+      : `Проверено: ${countLabel}. Файл готов к импорту.`;
   const items = result.errors.map((error) => {
     const item = document.createElement("li");
     item.textContent = `${error.row ? `Строка ${error.row} · ` : ""}${error.message}`;
@@ -1113,8 +1031,12 @@ function renderImportReport() {
   const downloadReport = $("import-download-report");
   downloadReport.hidden = result.errors.length === 0;
   const submit = $("import-submit");
-  submit.disabled = importState.validating || importState.uploading || result.count === 0 || result.errors.length > 0;
-  submit.textContent = result.count ? `Импортировать ${result.count} ${plural(result.count, ["запись", "записи", "записей"])}` : "Импортировать записи";
+  submit.disabled = importState.validating || importState.uploading || (!isGradesheet && result.count === 0) || result.errors.length > 0;
+  submit.textContent = isGradesheet
+    ? "Импортировать ведомость"
+    : result.count
+      ? `Импортировать ${result.count} ${plural(result.count, ["запись", "записи", "записей"])}`
+      : "Импортировать записи";
 }
 
 async function handleImportFile(file) {
@@ -1133,6 +1055,12 @@ async function handleImportFile(file) {
   if (file.size > MAX_IMPORT_SIZE) errors.push(importError("Размер файла превышает 5 МБ."));
   if (errors.length) {
     importState.result = { count: 0, errors };
+    renderImportReport();
+    return;
+  }
+
+  if (importState.type === "gradesheets") {
+    importState.result = { count: 1, errors: [] };
     renderImportReport();
     return;
   }
@@ -1210,7 +1138,8 @@ function uploadImport(endpoint, file) {
 async function submitImport(event) {
   event.preventDefault();
   const result = importState.result;
-  if (!result || result.errors.length || !result.count || importState.validating || importState.uploading) return;
+  const isGradesheet = importState.type === "gradesheets";
+  if (!result || result.errors.length || (!isGradesheet && !result.count) || importState.validating || importState.uploading) return;
   importState.uploading = true;
   const button = $("import-submit");
   button.disabled = true;
@@ -1224,7 +1153,6 @@ async function submitImport(event) {
   progress.value = 0;
   try {
     const response = await uploadImport(IMPORT_CONFIG[importState.type].endpoint, importState.uploadFile);
-    const isGradesheet = importState.type === "gradesheets";
     const message = isGradesheet
       ? `Обновлено оценок: ${response.created}.`
       : `Создано: ${response.created}, пропущено: ${response.skipped}.`;
@@ -1546,9 +1474,6 @@ function bindEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (window.pdfjsLib) {
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  }
   bindEvents();
   updateDocumentPracticeControl();
   renderDocumentHistory();
