@@ -1,316 +1,317 @@
-<!DOCTYPE html>
-<html lang="ru" data-theme="light">
+<!doctype html>
+<html lang="ru">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>DocFlow</title>
+    <meta name="color-scheme" content="light" />
+    <title>DocFlow — документы кафедры</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Manrope:wght@400;700&display=swap"
       rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
-    <link rel="stylesheet" href="/app/style.css" />
-    <script src="/app/app.js?v=7" defer></script>
+    <link rel="stylesheet" href="./style.css?v=2" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
+    <script src="./app.js?v=10" defer></script>
   </head>
   <body>
-    <!-- data-theme="light" pins Pico's light theme so its
-         prefers-color-scheme:dark block cannot repaint the DocFlow palette.
-         The DocFlow look lives in /app/style.css. -->
-    <main class="container">
-      <section id="auth-panel">
-        <h2 id="auth-title">Вход в DocFlow</h2>
-        <form id="auth-form">
-          <label for="auth-username">Логин</label>
-          <input id="auth-username" name="username" autocomplete="username" required maxlength="50" />
-          <label for="auth-password">Пароль (минимум 8 символов)</label>
-          <input id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" />
-          <button id="auth-submit" type="submit">Войти</button>
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="icon-upload" viewBox="0 0 24 24">
+        <path d="M11 15.6V4.8L7.4 8.4 6 7l6-6 6 6-1.4 1.4-3.6-3.6v10.8h-2ZM4 23c-1.1 0-2-.9-2-2v-5h2v5h16v-5h2v5c0 1.1-.9 2-2 2H4Z" />
+      </symbol>
+      <symbol id="icon-file" viewBox="0 0 24 24">
+        <path d="M6 22c-1.1 0-2-.9-2-2V2h10l6 6v12c0 1.1-.9 2-2 2H6Zm7-13V4H6v16h12V9h-5Z" />
+      </symbol>
+      <symbol id="icon-document" viewBox="0 0 24 24">
+        <path d="M6 22c-1.1 0-2-.9-2-2V2h10l6 6v12c0 1.1-.9 2-2 2H6Zm7-13V4H6v16h12V9h-5ZM8 12h8v2H8v-2Zm0 4h8v2H8v-2Z" />
+      </symbol>
+      <symbol id="icon-download" viewBox="0 0 24 24">
+        <path d="M11 3h2v10.8l3.6-3.6L18 11.6l-6 6-6-6 1.4-1.4 3.6 3.6V3ZM4 19h16v2H4v-2Z" />
+      </symbol>
+    </svg>
+
+    <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+    <main id="auth-view" class="auth-view">
+      <section class="auth-card" aria-labelledby="auth-title">
+        <div class="brand brand-auth" aria-label="DocFlow">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>DocFlow</span>
+        </div>
+        <div class="auth-heading">
+          <h1 id="auth-title">Вход в DocFlow</h1>
+          <p>Документы кафедры · вход для сотрудников</p>
+        </div>
+        <form id="auth-form" novalidate>
+          <div class="field" id="auth-username-field">
+            <label for="auth-username">Логин</label>
+            <input id="auth-username" name="username" autocomplete="username" required maxlength="50" />
+            <p class="field-error" id="auth-username-error" hidden></p>
+          </div>
+          <div class="field" id="auth-password-field">
+            <label for="auth-password">Пароль</label>
+            <input id="auth-password" name="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" aria-describedby="auth-password-hint auth-password-error" />
+            <p class="field-hint" id="auth-password-hint" hidden>Минимум 8 символов</p>
+            <p class="field-error" id="auth-password-error" hidden></p>
+          </div>
+          <p id="auth-message" class="inline-message error" role="alert" hidden></p>
+          <button id="auth-submit" class="button primary" type="submit">Войти</button>
         </form>
-        <button id="auth-toggle" type="button">Создать аккаунт</button>
-        <p id="auth-message" role="alert" hidden></p>
+        <div class="auth-links">
+          <button id="auth-toggle" class="button tertiary" type="button">Создать аккаунт</button>
+          <span aria-hidden="true">·</span>
+          <button id="forgot-password" class="button tertiary muted" type="button">Забыли пароль?</button>
+        </div>
+        <p id="forgot-password-hint" class="field-hint auth-recovery" hidden>Обратитесь к администратору кафедры для восстановления доступа.</p>
       </section>
-
-      <div id="app-shell" hidden>
-      <header>
-        <h1>DocFlow</h1>
-        <nav aria-label="Основная навигация">
-          <ul>
-            <li><a href="#overview">Обзор</a></li>
-            <li><a href="#imports">Импорт</a></li>
-            <li><a href="#practice">Практика</a></li>
-            <li><a href="#assignments">Распределение студентов</a></li>
-            <li><a href="#documents">Документы</a></li>
-          </ul>
-          <ul>
-            <li><button id="logout-button" type="button">Выйти</button></li>
-          </ul>
-        </nav>
-      </header>
-
-      <section id="overview">
-        <h2>Обзор</h2>
-        
-        <p>
-          <a href="#imports">Перейти к импорту</a> ·
-          <a href="#practice">Настроить практику</a> ·
-          <a href="#assignments">Распределение студентов</a> ·
-          <a href="#documents">Документы</a>
-        </p>
-        <p id="overview-message" role="status" hidden></p>
-      </section>
-
-      <section id="imports">
-        <h2>Импорт</h2>
-
-        <article>
-          <h3>Студенты</h3>
-          <p>
-            В файле Excel название группы берётся из заголовка
-            «Список студентов группы ...».
-          </p>
-          <form id="students-import-form">
-            <label for="students-file">Файл студентов (.xlsx)</label>
-            <input
-              id="students-file"
-              name="file"
-              type="file"
-              accept=".xlsx"
-              required
-            />
-            <button type="submit">Импортировать студентов</button>
-          </form>
-          <p id="students-import-message" role="status" hidden></p>
-        </article>
-
-        <article>
-          <h3>Организации</h3>
-          <p>
-            Используйте кодировку cp1251. Одна плохая строка отменяет весь импорт.
-          </p>
-          <form id="organizations-import-form">
-            <label for="organizations-file">Файл организаций (.txt)</label>
-            <input
-              id="organizations-file"
-              name="file"
-              type="file"
-              accept=".txt"
-              required
-            />
-            <button type="submit">Импортировать организации</button>
-          </form>
-          <p id="organizations-import-message" role="status" hidden></p>
-        </article>
-
-        <article>
-          <h3>Ведомость с оценками</h3>
-          <p>Загрузите PDF ведомости, чтобы обновить оценки студентов группы.</p>
-          <form id="gradesheets-import-form">
-            <label for="gradesheets-file">Файл ведомости (.pdf)</label>
-            <input
-              id="gradesheets-file"
-              name="file"
-              type="file"
-              accept=".pdf,application/pdf"
-              required
-            />
-            <button type="submit">Импортировать ведомость</button>
-          </form>
-          <p id="gradesheets-import-message" role="status" hidden></p>
-        </article>
-      </section>
-
-      <section id="practice">
-        <h2>Практика</h2>
-
-        <article>
-          <h3>Руководитель практики</h3>
-          <form id="supervisor-form">
-            <label for="supervisor-full-name">ФИО</label>
-            <input id="supervisor-full-name" name="full_name" required />
-
-            <label for="supervisor-position">Должность</label>
-            <input id="supervisor-position" name="position" required />
-
-            <button type="submit">Создать руководителя</button>
-          </form>
-          <p id="supervisor-message" role="status" hidden></p>
-        </article>
-
-        <article>
-          <h3>Создать практику</h3>
-          <form id="practice-form">
-            <label for="practice-group">Группа</label>
-            <select id="practice-group" name="group" required>
-              <option value="">Выберите группу</option>
-            </select>
-
-            <label for="practice-type">Тип практики</label>
-            <input
-              id="practice-type"
-              name="type"
-              list="practice-types"
-              required
-            />
-            <datalist id="practice-types">
-              <option value="Учебная"></option>
-              <option value="Производственная"></option>
-            </datalist>
-
-            <label for="practice-start-date">Дата начала</label>
-            <input
-              id="practice-start-date"
-              name="start_date"
-              type="date"
-              required
-            />
-
-            <label for="practice-end-date">Дата окончания</label>
-            <input
-              id="practice-end-date"
-              name="end_date"
-              type="date"
-              required
-            />
-
-            <button type="submit">Создать практику</button>
-          </form>
-          <p id="practice-message" role="status" hidden></p>
-        </article>
-      </section>
-
-      <section id="assignments">
-        <h2>Распределение студентов</h2>
-
-        <article>
-          <h3>Распределение студентов</h3>
-          <p>
-            Выберите группу и практику — появится таблица студентов. Организацию
-            можно задать сразу всем строкам, а затем поправить отдельным студентам.
-          </p>
-
-          <div class="distribution-context">
-            <label for="distribution-group">Группа</label>
-            <select id="distribution-group" name="group_id">
-              <option value="">Выберите группу</option>
-            </select>
-
-            <label for="distribution-practice">Практика</label>
-            <select id="distribution-practice" name="practice_id">
-              <option value="">Выберите практику</option>
-            </select>
-          </div>
-
-          <div id="distribution-bulk" class="distribution-bulk" hidden>
-            <h4>Заполнить все строки</h4>
-            <div class="distribution-bulk-grid">
-              <label for="distribution-bulk-organization">
-                Организация
-                <select
-                  id="distribution-bulk-organization"
-                  class="assignment-placeholder"
-                >
-                  <option value="">Не менять</option>
-                </select>
-              </label>
-
-              <label for="distribution-bulk-supervisor">
-                Руководитель
-                <select
-                  id="distribution-bulk-supervisor"
-                  class="assignment-placeholder"
-                >
-                  <option value="">Не менять</option>
-                </select>
-              </label>
-
-              <label for="distribution-bulk-practice-form">
-                Форма практики
-                <select
-                  id="distribution-bulk-practice-form"
-                  class="assignment-placeholder"
-                >
-                  <option value="">Не менять</option>
-                  <option value="Очно">Очно</option>
-                  <option value="Дистанционно">Дистанционно</option>
-                </select>
-              </label>
-
-              <label for="distribution-bulk-payment-type">
-                Тип оплаты
-                <select
-                  id="distribution-bulk-payment-type"
-                  class="assignment-placeholder"
-                >
-                  <option value="">Не менять</option>
-                  <option value="С оплатой">С оплатой</option>
-                  <option value="Без оплаты">Без оплаты</option>
-                </select>
-              </label>
-            </div>
-
-            <button type="button" id="distribution-bulk-apply">
-              Применить ко всем строкам
-            </button>
-          </div>
-
-          <form id="distribution-form" hidden>
-            <div class="distribution-table-wrapper">
-              <table id="distribution-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Студент</th>
-                    <th scope="col">Организация</th>
-                    <th scope="col">Руководитель</th>
-                    <th scope="col">Форма практики</th>
-                    <th scope="col">Тип оплаты</th>
-                  </tr>
-                </thead>
-                <tbody id="distribution-body"></tbody>
-              </table>
-            </div>
-
-            <button type="submit">Сохранить распределение</button>
-          </form>
-
-          <p id="distribution-message" role="status" hidden></p>
-        </article>
-      </section>
-
-      <section id="documents">
-        <h2>Документы</h2>
-
-        <article>
-          <h3>Направления</h3>
-          <form id="directions-form">
-            <label for="directions-practice">Практика</label>
-            <select id="directions-practice" name="practice_id" required>
-              <option value="">Выберите практику</option>
-            </select>
-            <button type="submit">Скачать направления</button>
-          </form>
-          <p id="directions-message" role="alert" hidden></p>
-        </article>
-
-        <article>
-          <h3>Приказ</h3>
-          <form id="order-form">
-            <label for="order-practices">Практики (необязательно; пусто — все практики)</label>
-            <select id="order-practices" name="practice_ids" multiple></select>
-            <button type="submit">Скачать приказ</button>
-          </form>
-          <p id="order-message" role="alert" hidden></p>
-        </article>
-
-        <article>
-          <h3>Отчёт</h3>
-          <form id="report-form">
-            <label for="report-practices">Практики (необязательно; пусто — все практики)</label>
-            <select id="report-practices" name="practice_ids" multiple></select>
-            <button type="submit">Скачать отчёт</button>
-          </form>
-          <p id="report-message" role="alert" hidden></p>
-        </article>
-      </section>
-      </div>
     </main>
+
+    <div id="app-shell" class="app-shell" hidden>
+      <aside class="sidebar">
+        <div class="brand sidebar-brand">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span>DocFlow</span>
+        </div>
+        <nav class="sidebar-nav" aria-label="Основная навигация">
+          <a href="#overview" data-route="overview">Обзор</a>
+          <a href="#imports" data-route="imports">Импорт</a>
+          <a href="#practice" data-route="practice">Практики</a>
+          <a href="#assignments" data-route="assignments">Распределение</a>
+          <a href="#documents" data-route="documents">Документы</a>
+        </nav>
+        <div class="sidebar-footer">
+          <span id="sidebar-username" class="sidebar-username"></span>
+          <button id="logout-button" class="button tertiary muted" type="button">Выйти</button>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <section id="overview" class="screen" data-screen="overview" aria-labelledby="overview-greeting">
+          <header class="screen-header">
+            <p class="eyebrow">Рабочий стол</p>
+            <h1 id="overview-greeting">Добрый день</h1>
+            <p id="overview-context" class="screen-description"></p>
+          </header>
+
+          <div id="overview-loading" class="overview-loading" aria-label="Загрузка обзора">
+            <div class="stats-grid">
+              <div class="stat-card skeleton"></div><div class="stat-card skeleton"></div>
+              <div class="stat-card skeleton"></div><div class="stat-card skeleton"></div>
+            </div>
+            <div class="panel skeleton skeleton-list"></div>
+          </div>
+
+          <div id="overview-content" hidden>
+            <div class="stats-grid" aria-label="Сводка данных">
+              <div class="stat-card"><strong id="stat-students">0</strong><span>Студентов</span></div>
+              <div class="stat-card"><strong id="stat-practices">0</strong><span>Практики</span></div>
+              <div class="stat-card"><strong id="stat-organizations">0</strong><span>Организаций</span></div>
+              <div class="stat-card"><strong id="stat-documents">0</strong><span>Документов</span></div>
+            </div>
+            <section class="panel next-steps" aria-labelledby="next-steps-title">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Рабочий процесс</p><h2 id="next-steps-title">Следующие шаги</h2></div>
+                <span id="overview-progress-label" class="meta-label"></span>
+              </div>
+              <ol id="next-steps-list" class="steps-list"></ol>
+              <button id="overview-next" class="button primary" type="button">Перейти к импорту</button>
+            </section>
+          </div>
+
+          <div id="overview-error" class="state-message error-state" role="alert" hidden>
+            <div><strong>Не удалось загрузить обзор</strong><p>Проверьте соединение и попробуйте ещё раз.</p></div>
+            <button id="overview-retry" class="button secondary" type="button">Повторить</button>
+          </div>
+        </section>
+
+        <section id="imports" class="screen" data-screen="imports" aria-labelledby="imports-title" hidden>
+          <header class="screen-header">
+            <p class="eyebrow">Исходные данные</p>
+            <h1 id="imports-title">Импорт</h1>
+            <p class="screen-description">Проверьте файл перед отправкой. Если есть ошибки, исправьте их и загрузите файл снова.</p>
+          </header>
+
+          <div class="panel import-panel">
+            <fieldset class="segmented-fieldset">
+              <legend>Тип данных</legend>
+              <div class="segmented-control">
+                <input id="import-type-students" type="radio" name="import-type" value="students" checked />
+                <label for="import-type-students">Студенты <span>.xlsx</span></label>
+                <input id="import-type-organizations" type="radio" name="import-type" value="organizations" />
+                <label for="import-type-organizations">Организации <span>.txt</span></label>
+                <input id="import-type-gradesheets" type="radio" name="import-type" value="gradesheets" />
+                <label for="import-type-gradesheets">Ведомость <span>.pdf</span></label>
+              </div>
+            </fieldset>
+
+            <form id="import-form" novalidate>
+              <label id="import-dropzone" class="dropzone" for="import-file">
+                <svg class="icon large" aria-hidden="true"><use href="#icon-upload"></use></svg>
+                <strong>Перетащите файл сюда или выберите файл</strong>
+                <span id="import-requirements">.xlsx · до 5 МБ · группа и номера зачёток обязательны</span>
+                <input id="import-file" name="file" type="file" accept=".xlsx" required />
+              </label>
+
+              <div id="import-file-row" class="file-row" hidden>
+                <svg class="icon" aria-hidden="true"><use href="#icon-file"></use></svg>
+                <div class="file-info"><strong id="import-file-name"></strong><span id="import-file-size" class="meta-label"></span></div>
+                <button id="import-file-remove" class="button tertiary muted" type="button">Убрать</button>
+              </div>
+
+              <div id="import-validation-loading" class="validation-loading" hidden>
+                <span class="skeleton inline-skeleton"></span><span>Проверяем файл…</span>
+              </div>
+
+              <div id="import-progress" class="progress-block" hidden>
+                <div><span id="import-progress-label">Загрузка файла</span><span id="import-progress-value" class="meta-label">0%</span></div>
+                <progress id="import-progress-bar" max="100" value="0"></progress>
+              </div>
+
+              <section id="import-report" class="import-report" aria-labelledby="import-report-title" hidden>
+                <div class="report-heading">
+                  <div><h2 id="import-report-title">Проверка файла</h2><p id="import-report-summary"></p></div>
+                  <button id="import-download-report" class="button secondary" type="button" hidden>Скачать отчёт</button>
+                </div>
+                <ul id="import-errors" class="error-list"></ul>
+              </section>
+
+              <p id="import-message" class="inline-message" role="status" hidden></p>
+              <div class="form-actions">
+                <button id="import-submit" class="button primary" type="submit" disabled>Импортировать записи</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <section id="practice" class="screen" data-screen="practice" aria-labelledby="practice-title" hidden>
+          <header class="screen-header">
+            <p class="eyebrow">Настройка</p>
+            <h1 id="practice-title">Практики</h1>
+            <p class="screen-description">Добавьте руководителя и задайте параметры практики для группы.</p>
+          </header>
+
+          <div class="practice-grid">
+            <section class="panel" aria-labelledby="supervisor-title">
+              <div class="panel-heading"><h2 id="supervisor-title">Руководитель практики</h2></div>
+              <form id="supervisor-form" novalidate>
+                <div class="field"><label for="supervisor-full-name">ФИО</label><input id="supervisor-full-name" name="full_name" required aria-describedby="supervisor-full-name-error" /><p id="supervisor-full-name-error" class="field-error" hidden></p></div>
+                <div class="field"><label for="supervisor-position">Должность</label><input id="supervisor-position" name="position" required aria-describedby="supervisor-position-error" /><p id="supervisor-position-error" class="field-error" hidden></p></div>
+                <p id="supervisor-message" class="inline-message" role="status" hidden></p>
+                <button id="supervisor-retry" class="button secondary inline-retry" type="button" hidden>Повторить</button>
+                <button class="button secondary" type="submit">Создать руководителя</button>
+              </form>
+            </section>
+
+            <section class="panel" aria-labelledby="create-practice-title">
+              <div class="panel-heading"><h2 id="create-practice-title">Создать практику</h2></div>
+              <form id="practice-form" novalidate>
+                <div class="form-grid two-columns">
+                  <div class="field"><label for="practice-group">Группа</label><select id="practice-group" name="group" required aria-describedby="practice-group-error"><option value="">Выберите группу</option></select><p id="practice-group-error" class="field-error" hidden></p></div>
+                  <div class="field"><label for="practice-type">Тип практики</label><input id="practice-type" name="type" list="practice-types" required aria-describedby="practice-type-error" /><p id="practice-type-error" class="field-error" hidden></p><datalist id="practice-types"><option value="Учебная"></option><option value="Производственная"></option></datalist></div>
+                  <div class="field"><label for="practice-start-date">Дата начала</label><input id="practice-start-date" name="start_date" type="date" required aria-describedby="practice-start-date-error" /><p id="practice-start-date-error" class="field-error" hidden></p></div>
+                  <div class="field"><label for="practice-end-date">Дата окончания</label><input id="practice-end-date" name="end_date" type="date" required aria-describedby="practice-end-date-error" /><p id="practice-end-date-error" class="field-error" hidden></p></div>
+                </div>
+                <p id="practice-message" class="inline-message" role="status" hidden></p>
+                <button id="practice-retry" class="button secondary inline-retry" type="button" hidden>Повторить</button>
+                <button class="button primary" type="submit">Создать практику</button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section id="assignments" class="screen wide-screen" data-screen="assignments" aria-labelledby="assignments-title" hidden>
+          <header class="screen-header">
+            <p class="eyebrow">Организации и студенты</p>
+            <h1 id="assignments-title">Распределение студентов</h1>
+            <p class="screen-description">Задайте организацию всей группе или измените назначение отдельного студента.</p>
+          </header>
+
+          <div class="filter-toolbar" aria-label="Фильтры распределения">
+            <div class="compact-field"><label for="distribution-group">Группа</label><select id="distribution-group" name="group_id"><option value="">Выберите группу</option></select></div>
+            <div class="compact-field"><label for="distribution-practice">Практика</label><select id="distribution-practice" name="practice_id"><option value="">Выберите практику</option></select></div>
+          </div>
+
+          <div id="distribution-loading" class="panel distribution-skeleton" hidden><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>
+          <div id="distribution-empty" class="panel empty-state" hidden>
+            <h2>Выберите группу и практику</h2>
+            <p>Здесь появится таблица студентов и их назначений.</p>
+            <a class="button primary" href="#imports" id="distribution-empty-action">Перейти к импорту</a>
+          </div>
+
+          <div id="distribution-workspace" hidden>
+            <section id="distribution-bulk" class="bulk-panel" aria-label="Массовое заполнение">
+              <div class="bulk-grid">
+                <div class="compact-field"><label for="distribution-bulk-organization">Организация для всех</label><select id="distribution-bulk-organization" class="assignment-placeholder"><option value="">Не менять</option></select></div>
+                <div class="compact-field"><label for="distribution-bulk-supervisor">Руководитель</label><select id="distribution-bulk-supervisor" class="assignment-placeholder"><option value="">Не менять</option></select></div>
+                <div class="compact-field"><label for="distribution-bulk-practice-form">Форма практики</label><select id="distribution-bulk-practice-form" class="assignment-placeholder"><option value="">Не менять</option><option value="Очно">Очно</option><option value="Дистанционно">Дистанционно</option></select></div>
+                <div class="compact-field"><label for="distribution-bulk-payment-type">Тип оплаты</label><select id="distribution-bulk-payment-type" class="assignment-placeholder"><option value="">Не менять</option><option value="С оплатой">С оплатой</option><option value="Без оплаты">Без оплаты</option></select></div>
+                <button type="button" id="distribution-bulk-apply" class="button secondary bulk-apply">Применить ко всем</button>
+              </div>
+            </section>
+
+            <form id="distribution-form">
+              <div class="distribution-table-wrapper">
+                <table id="distribution-table">
+                  <thead><tr><th scope="col">Студент</th><th scope="col">Организация</th><th scope="col">Руководитель</th><th scope="col">Форма</th><th scope="col">Оплата</th><th scope="col">Статус</th></tr></thead>
+                  <tbody id="distribution-body"></tbody>
+                </table>
+              </div>
+              <div class="distribution-footer">
+                <span id="distribution-count">Назначено 0 из 0 студентов</span>
+                <button id="distribution-submit" class="button primary" type="submit">Сохранить распределение</button>
+              </div>
+            </form>
+          </div>
+          <div id="distribution-message" class="state-message" role="status" hidden><p></p><button id="distribution-retry" class="button secondary" type="button" hidden>Повторить</button></div>
+        </section>
+
+        <section id="documents" class="screen" data-screen="documents" aria-labelledby="documents-title" hidden>
+          <header class="screen-header">
+            <p class="eyebrow">Формирование DOCX</p>
+            <h1 id="documents-title">Документы</h1>
+            <p class="screen-description">Сформируйте документ и скачайте его сразу или позже из истории.</p>
+          </header>
+
+          <section class="panel" aria-labelledby="new-document-title">
+            <div class="panel-heading"><h2 id="new-document-title">Новый документ</h2></div>
+            <form id="document-form" novalidate>
+              <fieldset class="segmented-fieldset">
+                <legend>Тип документа</legend>
+                <div class="segmented-control document-types">
+                  <input id="document-type-directions" type="radio" name="document_type" value="directions" checked />
+                  <label for="document-type-directions">Направления</label>
+                  <input id="document-type-order" type="radio" name="document_type" value="order" />
+                  <label for="document-type-order">Приказ</label>
+                  <input id="document-type-report" type="radio" name="document_type" value="report" />
+                  <label for="document-type-report">Отчёт</label>
+                </div>
+              </fieldset>
+              <div id="document-single-practice" class="field document-practice-field">
+                <label for="document-practice">Практика</label>
+                <select id="document-practice" name="practice_id"><option value="">Выберите практику</option></select>
+              </div>
+              <div id="document-multiple-practices" class="field document-practice-field" hidden>
+                <label for="document-practices">Практики</label>
+                <select id="document-practices" name="practice_ids" multiple></select>
+                <p class="field-hint">Выберите несколько практик или пункт «Все практики».</p>
+              </div>
+              <p id="document-message" class="inline-message" role="status" hidden></p>
+              <div class="form-actions document-actions">
+                <button id="document-submit" class="button primary" type="submit">Сформировать</button>
+                <p class="field-hint">Файл появится в истории. История хранится до закрытия или перезагрузки вкладки.</p>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel history-panel" aria-labelledby="document-history-title">
+            <div class="panel-heading"><h2 id="document-history-title">История</h2><span id="document-history-count" class="meta-label">0 файлов</span></div>
+            <div id="document-history-empty" class="empty-state compact"><p>Сформированные документы появятся здесь.</p></div>
+            <ul id="document-history" class="document-history"></ul>
+          </section>
+        </section>
+      </main>
+    </div>
   </body>
 </html>
