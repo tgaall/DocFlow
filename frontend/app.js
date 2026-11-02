@@ -46,6 +46,7 @@ const importState = {
   validationId: 0,
 };
 const documentHistory = [];
+const choiceInstances = new WeakMap();
 let authMode = "login";
 let currentRoute = "overview";
 let distributionRequestId = 0;
@@ -197,6 +198,46 @@ function fillSelect(select, placeholder, options, preserve = true) {
   if (preserve && Array.from(select.options).some((option) => option.value === previous)) {
     select.value = previous;
   }
+  syncChoices(select);
+}
+
+function syncChoices(select, deselectAll = true) {
+  const choices = choiceInstances.get(select);
+  if (!choices) return;
+  choices.refresh(false, false, deselectAll);
+}
+
+function initializeChoices(selects) {
+  if (!window.Choices) return;
+  selects.forEach((select) => {
+    if (choiceInstances.has(select)) return;
+    const choices = new window.Choices(select, {
+      allowHTML: false,
+      appendGroupInSearch: false,
+      itemSelectText: "",
+      placeholder: select.classList.contains("placeholder-select"),
+      placeholderValue: select.options[0]?.textContent || "",
+      searchEnabled: select.multiple || select.options.length > 8,
+      searchPlaceholderValue: "Поиск…",
+      shouldSort: false,
+      removeItemButton: select.multiple,
+      searchResultLimit: 100,
+      renderChoiceLimit: -1,
+    });
+    choiceInstances.set(select, choices);
+  });
+}
+
+function initializeDatePickers() {
+  if (!window.flatpickr) return;
+  window.flatpickr.localize(window.flatpickr.l10ns.ru);
+  window.flatpickr("#practice-start-date, #practice-end-date", {
+    altInput: true,
+    altFormat: "d.m.Y",
+    dateFormat: "Y-m-d",
+    locale: "ru",
+    disableMobile: true,
+  });
 }
 
 function groupOptions() {
@@ -267,6 +308,7 @@ function updatePracticeSelectors() {
   const allOption = multiple.options[0];
   allOption.selected = selected.has(SELECT_ALL_PRACTICES_VALUE) || multiple.selectedOptions.length === 0;
   multiple.dataset.allSelected = String(allOption.selected);
+  syncChoices(multiple);
 
   fillSelect($("distribution-group"), "Выберите группу", groupOptions());
   updateDistributionPracticeSelect();
@@ -567,6 +609,7 @@ function renderDistributionTable(students, assignmentsByStudent) {
     return row;
   });
   $("distribution-body").replaceChildren(...rows);
+  initializeChoices(Array.from($("distribution-body").querySelectorAll("select")));
   updateDistributionCount();
 }
 
@@ -766,12 +809,14 @@ async function submitPracticeForm(form, endpoint, messageId, successMessage) {
   let valid = true;
   form.querySelectorAll("[aria-invalid='true']").forEach((field) => {
     field.removeAttribute("aria-invalid");
+    field.closest(".field")?.classList.remove("has-error");
     const error = $(`${field.id}-error`);
     if (error) error.hidden = true;
   });
   form.querySelectorAll("[required]").forEach((field) => {
     if (String(field.value).trim()) return;
     field.setAttribute("aria-invalid", "true");
+    field.closest(".field")?.classList.add("has-error");
     $(`${field.id}-error`).textContent = "Заполните это поле.";
     $(`${field.id}-error`).hidden = false;
     valid = false;
@@ -784,9 +829,10 @@ async function submitPracticeForm(form, endpoint, messageId, successMessage) {
     if (start && end && end < start) {
       const field = $("practice-end-date");
       field.setAttribute("aria-invalid", "true");
+      field.closest(".field")?.classList.add("has-error");
       $("practice-end-date-error").textContent = "Дата окончания не может быть раньше даты начала.";
       $("practice-end-date-error").hidden = false;
-      field.focus();
+      (field._flatpickr?.altInput || field).focus();
       return;
     }
   }
@@ -1184,6 +1230,7 @@ function updateDocumentPracticeControl() {
     multiple.options[0].selected = true;
   }
   multiple.dataset.allSelected = String(multiple.options[0]?.selected ?? false);
+  syncChoices(multiple);
 }
 
 function handleDocumentMultiSelect() {
@@ -1191,13 +1238,31 @@ function handleDocumentMultiSelect() {
   const options = Array.from(select.options);
   const all = options[0];
   if (!all) return;
-  const hadAll = select.dataset.allSelected === "true";
-  if (all.selected && !hadAll) {
-    options.forEach((option) => { option.selected = option === all; });
-  } else if (all.selected && hadAll && select.selectedOptions.length > 1) {
-    all.selected = false;
+  const choices = choiceInstances.get(select);
+  const wasAllSelected = select.dataset.allSelected === "true";
+
+  if (all.selected && !wasAllSelected) {
+    if (choices) {
+      options.slice(1).forEach((option) => choices.removeActiveItemsByValue(option.value));
+    } else {
+      options.slice(1).forEach((option) => { option.selected = false; });
+    }
+  } else if (all.selected && wasAllSelected && select.selectedOptions.length > 1) {
+    if (choices) {
+      choices.removeActiveItemsByValue(all.value);
+    } else {
+      all.selected = false;
+    }
   }
-  if (!select.selectedOptions.length) all.selected = true;
+
+  if (!select.selectedOptions.length) {
+    if (choices) {
+      choices.setChoiceByValue(all.value);
+    } else {
+      all.selected = true;
+    }
+  }
+
   select.dataset.allSelected = String(all.selected);
 }
 
@@ -1474,6 +1539,8 @@ function bindEvents() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  initializeChoices(Array.from(document.querySelectorAll("select")));
+  initializeDatePickers();
   bindEvents();
   updateDocumentPracticeControl();
   renderDocumentHistory();
