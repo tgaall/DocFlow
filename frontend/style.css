@@ -246,6 +246,10 @@ input::placeholder {
   color: var(--muted);
 }
 
+select.placeholder-select:has(option:first-child:checked) {
+  color: var(--muted);
+}
+
 input:disabled,
 select:disabled {
   background: var(--surface-alt);
