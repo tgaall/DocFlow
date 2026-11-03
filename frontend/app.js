@@ -10,7 +10,7 @@ const data = {
 
 const ROUTES = new Set(["overview", "imports", "practice", "assignments", "documents"]);
 const SELECT_ALL_PRACTICES_VALUE = "__select_all_practices__";
-const PRACTICE_FORM_OPTIONS = ["Очно", "Дистанционно"];
+const PRACTICE_FORM_OPTIONS = ["Бюджет", "Контракт"];
 const PAYMENT_TYPE_OPTIONS = ["С оплатой", "Без оплаты"];
 const MAX_IMPORT_SIZE = 5 * 1024 * 1024;
 const IMPORT_CONFIG = {
