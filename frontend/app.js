@@ -619,10 +619,11 @@ function updateDistributionCount() {
   $("distribution-count").textContent = `Назначено ${assigned} из ${rows.length} ${plural(rows.length, ["студента", "студентов", "студентов"])}`;
 }
 
-function showDistributionMessage(text = "", isError = false, retryAction = "") {
+function showDistributionMessage(text = "", isError = false, retryAction = "", isSuccess = false) {
   const container = $("distribution-message");
   container.hidden = !text;
   container.classList.toggle("error-state", isError);
+  container.classList.toggle("success-state", isSuccess);
   container.setAttribute("role", isError ? "alert" : "status");
   container.querySelector("p").textContent = text;
   const retry = $("distribution-retry");
@@ -786,9 +787,9 @@ async function submitDistribution(event) {
     const skippedCount = rows.length - payloads.length;
     if (!failedCount) {
       const skippedNote = skippedCount ? ` Без организации: ${skippedCount}.` : "";
-      showDistributionMessage(`Сохранено назначений: ${savedCount}.${skippedNote}`);
+      $("distribution-workspace").hidden = true;
+      showDistributionMessage(`Распределение успешно сохранено. Назначено студентов: ${savedCount}.${skippedNote}`, false, "", true);
       showToast("Распределение сохранено.");
-      await refreshDistributionSafelyAsync();
       refreshOverviewInBackground();
     } else {
       showDistributionMessage(`Сохранено: ${savedCount}. Не удалось сохранить: ${failedCount}. Повторите сохранение.`, true, "save");
@@ -799,10 +800,6 @@ async function submitDistribution(event) {
   } finally {
     setButtonBusy(button, false);
   }
-}
-
-function refreshDistributionSafelyAsync() {
-  return refreshDistribution();
 }
 
 function refreshOverviewInBackground() {
