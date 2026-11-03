@@ -621,6 +621,12 @@ select.has-error,
   color: var(--red);
 }
 
+.state-message.success-state {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .state-message.error-state p {
   margin-top: 4px;
 }

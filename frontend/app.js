@@ -10,7 +10,7 @@ const data = {
 
 const ROUTES = new Set(["overview", "imports", "practice", "assignments", "documents"]);
 const SELECT_ALL_PRACTICES_VALUE = "__select_all_practices__";
-const PRACTICE_FORM_OPTIONS = ["Очно", "Дистанционно"];
+const PRACTICE_FORM_OPTIONS = ["Бюджет", "Контракт"];
 const PAYMENT_TYPE_OPTIONS = ["С оплатой", "Без оплаты"];
 const MAX_IMPORT_SIZE = 5 * 1024 * 1024;
 const IMPORT_CONFIG = {
@@ -568,7 +568,13 @@ function createSelectCell(name, placeholder, options, selectedValue) {
   select.name = name;
   select.classList.add("assignment-placeholder");
   fillSelect(select, placeholder, options, false);
-  if (selectedValue) select.value = selectedValue;
+  if (selectedValue) {
+    const selectedOption = Array.from(select.options).find((option) => option.value === selectedValue);
+    if (selectedOption) {
+      selectedOption.selected = true;
+      selectedOption.setAttribute("selected", "");
+    }
+  }
   select.addEventListener("change", () => {
     updateRowStatus(select.closest("tr"));
     updateDistributionCount();
@@ -619,10 +625,11 @@ function updateDistributionCount() {
   $("distribution-count").textContent = `Назначено ${assigned} из ${rows.length} ${plural(rows.length, ["студента", "студентов", "студентов"])}`;
 }
 
-function showDistributionMessage(text = "", isError = false, retryAction = "") {
+function showDistributionMessage(text = "", isError = false, retryAction = "", isSuccess = false) {
   const container = $("distribution-message");
   container.hidden = !text;
   container.classList.toggle("error-state", isError);
+  container.classList.toggle("success-state", isSuccess);
   container.setAttribute("role", isError ? "alert" : "status");
   container.querySelector("p").textContent = text;
   const retry = $("distribution-retry");
@@ -726,7 +733,11 @@ function applyBulkToAllRows() {
   document.querySelectorAll("#distribution-body tr").forEach((row) => {
     fields.forEach((field) => {
       const value = bulkValues[field];
-      if (value) row.querySelector(`[name="${field}"]`).value = value;
+      if (!value) return;
+      const select = row.querySelector(`[name="${field}"]`);
+      const choices = choiceInstances.get(select);
+      if (choices) choices.setChoiceByValue(value);
+      else select.value = value;
     });
     updateRowStatus(row);
   });
@@ -782,9 +793,9 @@ async function submitDistribution(event) {
     const skippedCount = rows.length - payloads.length;
     if (!failedCount) {
       const skippedNote = skippedCount ? ` Без организации: ${skippedCount}.` : "";
-      showDistributionMessage(`Сохранено назначений: ${savedCount}.${skippedNote}`);
+      $("distribution-workspace").hidden = true;
+      showDistributionMessage(`Распределение успешно сохранено. Назначено студентов: ${savedCount}.${skippedNote}`, false, "", true);
       showToast("Распределение сохранено.");
-      await refreshDistributionSafelyAsync();
       refreshOverviewInBackground();
     } else {
       showDistributionMessage(`Сохранено: ${savedCount}. Не удалось сохранить: ${failedCount}. Повторите сохранение.`, true, "save");
@@ -795,10 +806,6 @@ async function submitDistribution(event) {
   } finally {
     setButtonBusy(button, false);
   }
-}
-
-function refreshDistributionSafelyAsync() {
-  return refreshDistribution();
 }
 
 function refreshOverviewInBackground() {
