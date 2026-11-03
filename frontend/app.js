@@ -568,7 +568,13 @@ function createSelectCell(name, placeholder, options, selectedValue) {
   select.name = name;
   select.classList.add("assignment-placeholder");
   fillSelect(select, placeholder, options, false);
-  if (selectedValue) select.value = selectedValue;
+  if (selectedValue) {
+    const selectedOption = Array.from(select.options).find((option) => option.value === selectedValue);
+    if (selectedOption) {
+      selectedOption.selected = true;
+      selectedOption.setAttribute("selected", "");
+    }
+  }
   select.addEventListener("change", () => {
     updateRowStatus(select.closest("tr"));
     updateDistributionCount();
