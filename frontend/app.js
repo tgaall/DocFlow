@@ -726,7 +726,11 @@ function applyBulkToAllRows() {
   document.querySelectorAll("#distribution-body tr").forEach((row) => {
     fields.forEach((field) => {
       const value = bulkValues[field];
-      if (value) row.querySelector(`[name="${field}"]`).value = value;
+      if (!value) return;
+      const select = row.querySelector(`[name="${field}"]`);
+      const choices = choiceInstances.get(select);
+      if (choices) choices.setChoiceByValue(value);
+      else select.value = value;
     });
     updateRowStatus(row);
   });
