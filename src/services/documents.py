@@ -1,19 +1,18 @@
 from copy import deepcopy
 from io import BytesIO
-from pathlib import Path
 
 from docxtpl import DocxTemplate
 from docx import Document
 from docx.oxml.ns import qn
 
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "templates"
-DIRECTION_TEMPLATE = TEMPLATES_DIR / "Direction_template.docx"
-ORDER_TEMPLATE = TEMPLATES_DIR / "Order_template.docx"
-REPORT_TEMPLATE = TEMPLATES_DIR / "Report_template.docx"
+from src.config import get_settings
+
+def _template(name: str):
+    return get_settings().templates_dir / name
 
 
 def render_direction(context: dict) -> bytes:
-    doc = DocxTemplate(str(DIRECTION_TEMPLATE))
+    doc = DocxTemplate(str(_template("Direction_template.docx")))
     doc.render(context)
 
     buffer = BytesIO()
@@ -43,7 +42,7 @@ def render_directions(contexts: list[dict]) -> bytes:
 
 
 def render_order(rows: list[dict[str, str]]) -> bytes:
-    doc = DocxTemplate(str(ORDER_TEMPLATE))
+    doc = DocxTemplate(str(_template("Order_template.docx")))
     doc.render({"rows": rows})
 
     buffer = BytesIO()
@@ -74,7 +73,7 @@ def render_report(
         companies_data: организации, руководители от базы практики и число студентов
         supervissors: руководители практики от кафедры (название ключа в DOCX)
     """
-    doc = DocxTemplate(str(REPORT_TEMPLATE))
+    doc = DocxTemplate(str(_template("Report_template.docx")))
     doc.render(
         {
             "groups": groups_data,
