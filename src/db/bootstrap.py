@@ -2,7 +2,7 @@ from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from src.db.base import Base
-from src.db.session import engine
+from src.db.session import get_engine
 
 # Import models before create_all so SQLAlchemy knows about their tables.
 from src.models import auth, domain  # noqa: F401  (register tables before create_all)
@@ -40,6 +40,6 @@ async def migrate_legacy_schema(connection: AsyncConnection) -> None:
 
 
 async def init_db() -> None:
-    async with engine.begin() as connection:
+    async with get_engine().begin() as connection:
         await migrate_legacy_schema(connection)
         await connection.run_sync(Base.metadata.create_all)

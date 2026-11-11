@@ -1,5 +1,4 @@
 import hashlib
-import os
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -9,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import get_settings
 from src.db.session import get_async_session
 from src.models.auth import Session as UserSession
 from src.models.auth import User
@@ -64,7 +64,7 @@ def _set_session_cookie(response: Response, token: str) -> None:
         SESSION_COOKIE,
         token,
         httponly=True,
-        secure=os.getenv("AUTH_COOKIE_SECURE", "true").lower() == "true",
+        secure=get_settings().cookie_secure,
         samesite="lax",
         max_age=int(SESSION_LIFETIME.total_seconds()),
         path="/",
@@ -76,7 +76,7 @@ def _delete_session_cookie(response: Response) -> None:
         SESSION_COOKIE,
         path="/",
         httponly=True,
-        secure=os.getenv("AUTH_COOKIE_SECURE", "true").lower() == "true",
+        secure=get_settings().cookie_secure,
         samesite="lax",
     )
 
