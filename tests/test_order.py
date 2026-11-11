@@ -181,7 +181,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await engine.dispose()
 
-    async def test_order_has_all_students_in_import_order_and_assignment_data(self) -> None:
+    async def test_order_groups_budget_students_before_contract_students(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             database_path = Path(temp_dir) / "order.db"
             engine = create_async_engine(f"sqlite+aiosqlite:///{database_path}")
@@ -202,11 +202,13 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                             full_name="Иванов Иван Иванович",
                             group_id=groups[0].id,
                             record_book=1001,
+                            type_of_study="контракт",
                         ),
                         Student(
                             full_name="Петров Петр Петрович",
                             group_id=groups[0].id,
                             record_book=1002,
+                            type_of_study="бюджет",
                         ),
                         Student(
                             full_name="Сидорова Анна Сергеевна",
@@ -254,16 +256,16 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
 
                 self.assertEqual(
                     [row["full_name"] for row in rows],
-                    [student.full_name for student in students[:2]],
+                    [students[1].full_name, students[0].full_name],
                 )
-                self.assertEqual(rows[0]["org_display"], "ООО Ромашка, г. Уфа")
+                self.assertEqual(rows[0]["org_display"], "АО Пример")
                 self.assertEqual(rows[0]["practice_type"], "Учебная")
                 self.assertEqual(len(selected_group_rows), 2)
                 self.assertTrue(
                     all(row["group"] == "ГР-25" for row in selected_group_rows)
                 )
                 self.assertEqual(rows[0]["start_date"], "01.06.2026")
-                self.assertEqual(rows[1]["org_display"], "АО Пример")
+                self.assertEqual(rows[1]["org_display"], "ООО Ромашка, г. Уфа")
 
                 document_bytes = render_order(rows)
                 output = Path(temp_dir) / "generated-order.docx"
@@ -275,11 +277,11 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                 ]
                 self.assertEqual(
                     generated_names,
-                    [student.full_name for student in students[:2]],
+                    [students[1].full_name, students[0].full_name],
                 )
                 self.assertEqual(table.cell(1, 0).text, "1")
                 self.assertEqual(table.cell(2, 0).text, "2")
-                self.assertEqual(table.cell(1, 2).text, "ООО Ромашка, г. Уфа")
+                self.assertEqual(table.cell(1, 2).text, "АО Пример")
             finally:
                 await engine.dispose()
 
