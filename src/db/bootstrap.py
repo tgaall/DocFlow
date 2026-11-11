@@ -10,19 +10,32 @@ from src.models import auth, domain  # noqa: F401  (register tables before creat
 
 async def migrate_legacy_schema(connection: AsyncConnection) -> None:
     """Rename the old misspelled organization column without losing its data."""
-    if connection.dialect.name != "sqlite":
-        return
+    if connection.dialect.name == "sqlite":
+        def get_organization_columns(sync_connection) -> set[str]:
+            inspector = inspect(sync_connection)
+            if not inspector.has_table("organizations"):
+                return set()
+            return {
+                column["name"]
+                for column in inspector.get_columns("organizations")
+            }
 
-    def get_organization_columns(sync_connection) -> set[str]:
+        columns = await connection.run_sync(get_organization_columns)
+        if "addres" in columns and "address" not in columns:
+            await connection.exec_driver_sql(
+                'ALTER TABLE "organizations" RENAME COLUMN "addres" TO "address"'
+            )
+
+    def get_assignment_columns(sync_connection) -> set[str]:
         inspector = inspect(sync_connection)
-        if not inspector.has_table("organizations"):
+        if not inspector.has_table("assignments"):
             return set()
-        return {column["name"] for column in inspector.get_columns("organizations")}
+        return {column["name"] for column in inspector.get_columns("assignments")}
 
-    columns = await connection.run_sync(get_organization_columns)
-    if "addres" in columns and "address" not in columns:
+    assignment_columns = await connection.run_sync(get_assignment_columns)
+    if assignment_columns and "payment_type" not in assignment_columns:
         await connection.exec_driver_sql(
-            'ALTER TABLE "organizations" RENAME COLUMN "addres" TO "address"'
+            'ALTER TABLE "assignments" ADD COLUMN "payment_type" VARCHAR(50)'
         )
 
 

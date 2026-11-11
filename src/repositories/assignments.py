@@ -185,6 +185,7 @@ class AssignmentRepository:
         practice_id: int,
         supervisor_id: int | None = None,
         practice_form: str | None = None,
+        type_of_study: str | None = None,
         payment_type: str | None = None,
     ) -> list[Assignment]:
         """Create or update this practice's assignment for every student in a group."""
@@ -226,6 +227,7 @@ class AssignmentRepository:
                     assignment.organization_id = organization_id
                     assignment.supervisor_id = supervisor_id
                     assignment.practice_form = practice_form
+                    assignment.type_of_study = type_of_study
                     assignment.payment_type = payment_type
                 else:
                     assignment = Assignment(
@@ -234,6 +236,7 @@ class AssignmentRepository:
                         practice_id=practice_id,
                         supervisor_id=supervisor_id,
                         practice_form=practice_form,
+                        type_of_study=type_of_study,
                         payment_type=payment_type,
                     )
                     self.session.add(assignment)
@@ -337,7 +340,7 @@ class AssignmentRepository:
                         else ""
                     ),
                     "practice_form": assignment.practice_form if assignment else "",
-                    "payment_type": assignment.type_of_study if assignment else "",
+                    "payment_type": assignment.payment_type if assignment else "",
                     "supervisor": supervisor.full_name if supervisor else "",
                 }
             )

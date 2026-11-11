@@ -9,6 +9,7 @@ class AssignmentBase(BaseModel):
     practice_id: int
     supervisor_id: Optional[int] = None
     practice_form: Optional[str] = None
+    type_of_study: Optional[str] = None
     payment_type: Optional[str] = None
     grade: Optional[str] = None
 
@@ -23,6 +24,7 @@ class AssignmentUpdate(BaseModel):
     organization_id: Optional[int] = None
     supervisor_id: Optional[int] = None
     practice_form: Optional[str] = None
+    type_of_study: Optional[str] = None
     payment_type: Optional[str] = None
     grade: Optional[str] = None
 
@@ -45,4 +47,5 @@ class MassAssignmentCreate(BaseModel):
     practice_id: int
     supervisor_id: Optional[int] = None
     practice_form: Optional[str] = None
+    type_of_study: Optional[str] = None
     payment_type: Optional[str] = None

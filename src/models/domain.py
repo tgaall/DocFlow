@@ -83,7 +83,8 @@ class Assignment(Base):
     )
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     practice_form: Mapped[str] = mapped_column(String(50), nullable=True)
-    type_of_study: Mapped[str] = mapped_column(String(50), nullable=True)
+    type_of_study: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    payment_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
 
     supervisor: Mapped["Supervisor"] = relationship()
