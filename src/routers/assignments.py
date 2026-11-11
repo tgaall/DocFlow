@@ -42,6 +42,7 @@ async def create_assignment(
                     organization_id=assignment_data.organization_id,
                     supervisor_id=assignment_data.supervisor_id,
                     practice_form=assignment_data.practice_form,
+                    type_of_study=assignment_data.type_of_study,
                     payment_type=assignment_data.payment_type,
                     grade=assignment_data.grade,
                 ),
@@ -81,6 +82,7 @@ async def mass_create_assignments(
             practice_id=mass_data.practice_id,
             supervisor_id=mass_data.supervisor_id,
             practice_form=mass_data.practice_form,
+            type_of_study=mass_data.type_of_study,
             payment_type=mass_data.payment_type,
         )
     except Exception as exc:
