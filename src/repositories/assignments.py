@@ -289,7 +289,13 @@ class AssignmentRepository:
             )
             .join(Group, Group.id == Student.group_id)
             .order_by(
-                case((Student.type_of_study == "бюджет", 0), else_=1),
+                case(
+                    (
+                        Student.type_of_study.in_(["бюджет", "Бюджет"]),
+                        0,
+                    ),
+                    else_=1,
+                ),
                 Student.id,
                 Assignment.id,
             )

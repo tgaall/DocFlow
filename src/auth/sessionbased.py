@@ -106,7 +106,9 @@ async def register(
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise HTTPException(status_code=409, detail="Username is already registered") from exc
+        raise HTTPException(
+            status_code=409, detail="Username is already registered"
+        ) from exc
 
     _set_session_cookie(response, token)
     return user

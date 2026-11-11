@@ -208,7 +208,7 @@ class OrderGenerationTests(unittest.IsolatedAsyncioTestCase):
                             full_name="Петров Петр Петрович",
                             group_id=groups[0].id,
                             record_book=1002,
-                            type_of_study="бюджет",
+                            type_of_study="Бюджет",
                         ),
                         Student(
                             full_name="Сидорова Анна Сергеевна",
