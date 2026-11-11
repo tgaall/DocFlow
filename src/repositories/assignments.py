@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -111,22 +111,26 @@ class AssignmentRepository:
     async def get_by_student_practice(
         self, student_id: int, practice_id: int
     ) -> Assignment | None:
-        statement = select(Assignment).join(
-            Practice, Practice.id == Assignment.practice_id
-        ).where(
-            Assignment.student_id == student_id,
-            Assignment.practice_id == practice_id,
-            Practice.user_id == self.user_id,
+        statement = (
+            select(Assignment)
+            .join(Practice, Practice.id == Assignment.practice_id)
+            .where(
+                Assignment.student_id == student_id,
+                Assignment.practice_id == practice_id,
+                Practice.user_id == self.user_id,
+            )
         )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def get_by_practice(self, practice_id: int) -> list[Assignment]:
-        statement = select(Assignment).join(
-            Practice, Practice.id == Assignment.practice_id
-        ).where(
-            Assignment.practice_id == practice_id,
-            Practice.user_id == self.user_id,
+        statement = (
+            select(Assignment)
+            .join(Practice, Practice.id == Assignment.practice_id)
+            .where(
+                Assignment.practice_id == practice_id,
+                Practice.user_id == self.user_id,
+            )
         )
         result = await self.session.execute(statement)
         return list(result.scalars().all())
@@ -281,7 +285,11 @@ class AssignmentRepository:
                 & (Supervisor.user_id == self.user_id),
             )
             .join(Group, Group.id == Student.group_id)
-            .order_by(Student.id, Assignment.id)
+            .order_by(
+                case((Student.type_of_study == "бюджет", 0), else_=1),
+                Student.id,
+                Assignment.id,
+            )
             .where(
                 Student.user_id == self.user_id,
                 Group.user_id == self.user_id,
@@ -329,7 +337,7 @@ class AssignmentRepository:
                         else ""
                     ),
                     "practice_form": assignment.practice_form if assignment else "",
-                    "payment_type": assignment.payment_type if assignment else "",
+                    "payment_type": assignment.type_of_study if assignment else "",
                     "supervisor": supervisor.full_name if supervisor else "",
                 }
             )

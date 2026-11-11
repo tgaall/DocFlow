@@ -30,6 +30,7 @@ class Student(Base):
     full_name: Mapped[str] = mapped_column(String(255))
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id"))
     record_book: Mapped[int] = mapped_column(Integer)
+    type_of_study: Mapped[str | None]  ### Форма обучения: контракт / бюджет
     grade: Mapped[int] = mapped_column(Integer, nullable=True)
     group: Mapped["Group"] = relationship(back_populates="students")
 
@@ -82,7 +83,7 @@ class Assignment(Base):
     )
     practice_id: Mapped[int] = mapped_column(ForeignKey("practices.id"))
     practice_form: Mapped[str] = mapped_column(String(50), nullable=True)
-    payment_type: Mapped[str] = mapped_column(String(50), nullable=True)
+    type_of_study: Mapped[str] = mapped_column(String(50), nullable=True)
     grade: Mapped[str] = mapped_column(String(50), nullable=True)
 
     supervisor: Mapped["Supervisor"] = relationship()

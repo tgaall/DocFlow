@@ -41,6 +41,7 @@ class StudentRead(BaseModel):
     full_name: str
     group_id: int
     record_book: int
+    type_of_study: str | None = None
     grade: int | None = None
 
 
